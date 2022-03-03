@@ -1,117 +1,79 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
-      <q-toolbar>
-        <q-btn
-          flat
-          dense
-          round
-          icon="menu"
-          aria-label="Menu"
-          @click="toggleLeftDrawer"
-        />
+  <q-layout view="hHh lpR fFf">
+    <q-header elevated class="bg-primary text-white" height-hint="98">
+      <q-toolbar class="small-screen-only">
+        <q-toolbar-title class="text-catscratch align-center">
+          <img
+            src="~assets/kittyWalkW.png"
+            style="height: 2em; max-width: 2em; padding-top: 0.4em"
+          />
 
-        <q-toolbar-title>
-          Quasar App
+          pdfViewer
         </q-toolbar-title>
+      </q-toolbar>
 
-        <div>Quasar v{{ $q.version }}</div>
+      <q-toolbar class="large-screen-only constrain">
+        <div class="row">
+          <div class="col-10">
+            <q-toolbar-title class="text-catscratch text-left">
+              <img
+                src="~assets/kittyWalkW.png"
+                style="height: 2em; max-width: 2em; padding-top: 0.4em"
+              />
+              pdfViewer
+            </q-toolbar-title>
+          </div>
+          <div class="col-2 text-right">
+            <q-btn
+              to="/"
+              flat
+              dense
+              color="white"
+              icon="pets"
+              class="q-pt-sm q-mr-xs"
+              size="18px"
+            />
+            <q-btn
+              to="/upload"
+              flat
+              dense
+              color="white"
+              icon="file_upload"
+              class="q-pt-sm"
+              size="18px"
+            />
+          </div>
+        </div>
       </q-toolbar>
     </q-header>
 
-    <q-drawer
-      v-model="leftDrawerOpen"
-      show-if-above
-      bordered
-    >
-      <q-list>
-        <q-item-label
-          header
-        >
-          Essential Links
-        </q-item-label>
-
-        <EssentialLink
-          v-for="link in essentialLinks"
-          :key="link.title"
-          v-bind="link"
-        />
-      </q-list>
-    </q-drawer>
-
-    <q-page-container>
+    <q-page-container class="bg-grey-1">
       <router-view />
     </q-page-container>
+
+    <q-footer class="bg-primary text-white small-screen-only">
+      <q-tabs align="center" active-bg-color="secondary" indicator-color="transparent">
+        <q-route-tab to="/" icon="pets" />
+        <q-route-tab to="/Upload" icon="file_upload" />
+      </q-tabs>
+    </q-footer>
   </q-layout>
 </template>
 
 <script>
-import EssentialLink from 'components/EssentialLink.vue'
-
-const linksList = [
-  {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev'
-  },
-  {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework'
-  },
-  {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev'
-  },
-  {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev'
-  },
-  {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev'
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev'
-  },
-  {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev'
-  }
-];
-
 import { defineComponent, ref } from 'vue'
 
 export default defineComponent({
   name: 'MainLayout',
-
-  components: {
-    EssentialLink
-  },
-
-  setup () {
-    const leftDrawerOpen = ref(false)
-
-    return {
-      essentialLinks: linksList,
-      leftDrawerOpen,
-      toggleLeftDrawer () {
-        leftDrawerOpen.value = !leftDrawerOpen.value
-      }
-    }
-  }
 })
 </script>
+
+<style lang="sass">
+.align-right
+  text-align: right
+.align-center
+  text-align: center
+.q-footer
+  .q-tab__icon
+    font-size: 40px
+</style>
