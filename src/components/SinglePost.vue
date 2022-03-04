@@ -1,41 +1,32 @@
 <template>
-       <q-item clickable v-ripple @click="showFile">
-        <q-item-section avatar>
-           <q-icon color="secondary" name="bluetooth" />
-        </q-item-section>
+  <q-item class="col-11" clickable v-ripple @click="showFile">
+    <q-item-section class="col-1" avatar>
+      <q-icon color="secondary" name="picture_as_pdf" />
+    </q-item-section>
 
-        <q-item-section>
-          <q-item-label caption lines="2">
-            {{post.caption}}
-          </q-item-label>
-        </q-item-section>
+    <q-item-section class="col-9">
+      <q-item-label caption lines="1">
+        {{ post.caption }}
+      </q-item-label>
+    </q-item-section>
 
-        <q-item-section>
-          <q-item-label caption lines="2">
-            {{post.description}}
-          </q-item-label>
-        </q-item-section>
+    <q-item-section>
+      <q-item-label caption lines="2">
+        {{ niceDate(post.date) }}
+      </q-item-label>
+    </q-item-section>
+  </q-item>
 
-        <q-item-section>
-          <q-item-label caption lines="2">
-            {{niceDate(post.date)}}
-          </q-item-label>
-        </q-item-section>
-
-         <q-item-section>
-          <q-btn
-              flat
-              round
-              class="q-pa-xs"
-              color="secondary"
-              icon="delete"
-              @click="deletePost"
-            />
-         </q-item-section>
-
-
-
-      </q-item>
+  <div class="col-1">
+    <q-btn
+      flat
+      round
+      class="q-pa-xs"
+      color="secondary"
+      icon="delete"
+      @click="deletePost"
+    />
+  </div>
 </template>
 
 <script>
@@ -54,8 +45,8 @@ export default defineComponent({
   },
   methods: {
     showFile() {
-      console.log('show the file', this.post.fileUrl);
-      javascipt:window.open(this.post.fileUrl);
+      console.log('show the file', this.post.fileUrl)
+      javascipt: window.open(this.post.fileUrl)
     },
     niceDate(value) {
       return date.formatDate(value, 'MMMM DD h:mmA')

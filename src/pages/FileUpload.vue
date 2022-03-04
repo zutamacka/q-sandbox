@@ -1,112 +1,57 @@
 <template>
   <q-page class="constrain q-pa-md">
-    <div class="row q-col-gutter-md">
-      <div class="col-12 col-sm-8">
-        <div class="camera-frame q-pa-md">
-          <video
-            v-show="!imageCaptured"
-            ref="userVideo"
-            class="full-width"
-            autoplay
-            playsinline
-          />
-          <canvas
-            v-show="imageCaptured"
-            ref="userImage"
-            class="full-width"
-            height="240"
-          />
-        </div>
-        <div class="text-center q-pa-md">
-          <q-btn
-            v-if="hasCameraSupport"
-            @click="captureImage"
-            :disable="imageCaptured"
-            round
-            color="grey-10"
-            size="lg"
-            icon="camera"
-          />
-          <q-file
-            v-else
-            standout
-            rounded
-            bg-color="secondary"
-            label="Pick an Image"
-            class="text-center q-pa-md"
-            style="max-width: 200px; margin-left: auto; margin-right: auto"
-            accept="image/*"
-            v-model="imageUpload"
-            @input="captureImageFile"
-          >
-            <template v-slot:append>
-              <q-icon name="attach_file" @click.stop />
-            </template>
-          </q-file>
-
-          <div class="row justify-center q-ma-md">
-            <q-input
-              v-model="post.caption"
-              class="col col-sm-8"
-              label="Caption *"
-              dense
-            />
-          </div>
-          <div class="row justify-center q-ma-md">
-            <q-input
-              v-model="post.location"
-              :loading="loadingLocation"
-              class="col col-sm-8"
-              label="Location"
-              dense
-            >
-              <template v-slot:append>
-                <q-btn
-                  v-if="!loadingLocation && locationSupported"
-                  @click="getLocation"
-                  dense
-                  flat
-                  icon="gps_fixed"
-                />
-              </template>
-            </q-input>
-          </div>
-          <div class="row justify-center q-mt-lg">
-            <q-btn
-              unelevated
-              rounded
-              @click="pawst"
-              :disable="!post.caption.length || !post.photo"
-              color="secondary"
-              label="PAWST IMAGE"
-              icon="pets"
-            />
-          </div>
-        </div>
+    <q-item>
+      <div class="col-2 q-gutter-lg q-pr-sm">
+        <q-file
+          name="cover_files"
+          v-model="fileUpload"
+          @input="uploadFile"
+          color="black"
+          :bg-color="buttonColor"
+          filled
+          multiple
+          use-chips
+          borderless
+          dense
+          hide-bottom-space
+          label="Select file"
+          indicator-color="transparent"
+        >
+          <template v-slot:prepend>
+            <q-icon name="attachment" />
+          </template>
+        </q-file>
       </div>
-      <div class="col-4 large-screen-only">
-        <q-item class="fixed">
-          <q-item-section avatar>
-            <q-avatar size="48px">
-              <img src="~assets/MaineCoon.png" />
-            </q-avatar>
-          </q-item-section>
 
-          <q-item-section>
-            <q-item-label class="text-bold">Floofster</q-item-label>
-            <q-item-label caption>@Kittybox</q-item-label>
-          </q-item-section>
-        </q-item>
+      <div class="col-9">
+        <q-input v-model="post.caption" class="col col-sm-8" label="Caption *" dense />
       </div>
-    </div>
+      <div class="col-1 q-gutter-lg q-p-sm">
+        <q-btn
+          flat
+          round
+          :color="pawstButtonColor"
+          icon="pets"
+          :disable="!post.caption.length || !post.file"
+          @click="pawst"
+        />
+      </div>
+    </q-item>
   </q-page>
 </template>
 
 <script>
 import { defineComponent } from 'vue'
 import { uid } from 'quasar'
+import { ref } from 'vue'
 export default defineComponent({
   name: 'FileUpload',
+  setup() {
+    return {
+      files: ref(null),
+      buttonColor: 'secondary',
+    }
+  },
   data() {
     return {
       post: {
@@ -114,20 +59,14 @@ export default defineComponent({
         caption: '',
         location: '',
         date: Date.now(),
-        photo: null,
+        file: null,
       },
-      imageCaptured: false,
-      imageUpload: [],
-      hasCameraSupport: true,
+      buttonColor: 'secondary',
+      // v-model of q-file, this is where files get stored
+      fileUpload: [],
       apiOsMap: 'https://nominatim.openstreetmap.org/',
       loadingLocation: false,
     }
-  },
-  computed: {
-    locationSupported() {
-      if ('geolocation' in navigator) return true
-      return false
-    },
   },
   methods: {
     pawst() {
@@ -135,22 +74,29 @@ export default defineComponent({
         message: 'Posting...',
       })
 
+      // get location
+      if (this.locationSupported()) {
+        this.getLocation()
+        console.log('location set', this.post.location)
+      } else {
+        post.location = 'unknown'
+      }
+
       let formData = new FormData()
       formData.append('id', this.post.id)
       formData.append('caption', this.post.caption)
       formData.append('date', this.post.date)
       formData.append('location', this.post.location)
-      formData.append('file', this.post.photo, this.post.id + '.png')
-
+      formData.append('file', this.post.file, this.post.id + '.pdf')
       this.$axios
         .post(`${process.env.API}/posts-create`, formData)
         .then((response) => {
-          console.log(response)
+          //console.log(response)
           // send to the Home page after a successful post
           this.$router.push('/')
           // notify about posting
           this.$q.notify({
-            message: 'Post created.',
+            message: 'File Uploaded.',
             actions: [
               {
                 label: 'Dismiss',
@@ -163,71 +109,22 @@ export default defineComponent({
           console.log('error ', err)
           this.$q.dialog({
             title: 'Error',
-            message: 'Posting failed.',
+            message: 'Upload failed.',
           })
         })
         .finally(() => {
           this.$q.loading.hide()
         })
     },
-    initCamera() {
-      navigator.mediaDevices
-        .getUserMedia({
-          video: true,
-        })
-        .then((stream) => {
-          this.$refs.userVideo.srcObject = stream
-        })
-        .catch((error) => {
-          this.hasCameraSupport = false
-        })
+    uploadFile(e) {
+      this.post.file = e.target.files[0]
+      this.buttonColor = 'positive'
     },
-    captureImage() {
-      if (!this.imageCaptured) {
-        // capture image
-        let video = this.$refs.userVideo
-        let image = this.$refs.userImage
 
-        image.width = video.getBoundingClientRect().width
-        image.height = video.getBoundingClientRect().height
-
-        let context = image.getContext('2d')
-        console.log(context)
-
-        context.drawImage(video, 0, 0, image.width, image.height)
-        this.imageCaptured = true
-
-        this.post.photo = this.dataURItoBlob(image.toDataURL())
-        this.disableCamera()
-      } else {
-        // reset recorder
-        this.imageCaptured = false
-      }
-    },
-    captureImageFile(e) {
-      this.post.photo = e.target.files[0]
-      console.log(this.post.photo)
-      // show picture on html5 canvas
-      let canvas = this.$refs.userImage
-      let context = canvas.getContext('2d')
-
-      var reader = new FileReader()
-      reader.onload = (event) => {
-        var img = new Image()
-        img.onload = () => {
-          canvas.width = img.width
-          canvas.height = img.height
-          context.drawImage(img, 0, 0)
-          this.imageCaptured = true
-        }
-        img.src = event.target.result
-      }
-      reader.readAsDataURL(this.post.photo)
-    },
-    disableCamera() {
-      this.$refs.userVideo.srcObject.getVideoTracks().forEach((track) => {
-        track.stop()
-      })
+    // resolve location methods
+    locationSupported() {
+      if ('geolocation' in navigator) return true
+      return false
     },
     // gets the location @click
     getLocation() {
@@ -248,7 +145,6 @@ export default defineComponent({
       let apiUrl = `${this.apiOsMap}reverse?format=geojson&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`
       this.$axios.get(apiUrl).then(
         (result) => {
-          //console.log(result.data.features[0])
           if (result.data.features[0].properties.name) {
             this.post.location = result.data.features[0].properties.name
             if (result.data.features[0].properties.address.country_code) {
@@ -290,14 +186,13 @@ export default defineComponent({
       return blob
     },
   },
-  mounted() {
-    this.initCamera()
+  computed: {
+    pawstButtonColor() {
+      return !this.post.caption.length || !this.post.file ? 'grey-5' : 'secondary'
+    },
   },
-  beforeDestroy() {
-    if (this.hasCameraSupport) {
-      this.disableCamera()
-    }
-  },
+  mounted() {},
+  beforeDestroy() {},
 })
 </script>
 <style lang="sass">

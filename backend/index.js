@@ -55,10 +55,7 @@ const corsOptions ={
    credentials:true,            //access-control-allow-credentials:true
    optionSuccessStatus:200,
 }
-
 app.use(cors(corsOptions)) // Use this after the variable declaration
-
-
 
 /*
   listen on Heroku or home port 
@@ -168,7 +165,6 @@ app.post('/posts-create', (request, response) => {
           console.log(err);
       }
     )
-
     // creates a file and post on firebase
     function createFile(uploadedFile) {
       // post fields to firestore
@@ -178,7 +174,7 @@ app.post('/posts-create', (request, response) => {
         location: fields.location,
         // convert to integer
         date: parseInt(fields.date),
-        imageUrl: `https://firebasestorage.googleapis.com/v0/b/${ bucket.name }/o/${ uploadedFile.name }?alt=media&token=${ uuid }`
+        fileUrl: `https://firebasestorage.googleapis.com/v0/b/${ bucket.name }/o/${ uploadedFile.name }?alt=media&token=${ uuid }`
       }).then( () => {
         response.send('Post added: ' + fields.id )
       })
@@ -208,7 +204,7 @@ app.delete('/delete/:id', (request, response) => {
         // get the post
         post = doc.data()
         //create the fileName
-        let fileName = post.id + '.png'
+        let fileName = post.id + '.pdf'
       
         const file = bucket.file(fileName);
         file.delete().then(() => {
