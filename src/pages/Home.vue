@@ -62,6 +62,7 @@ export default defineComponent({
           console.log(this.posts.length, this.posts)
           if (this.posts.length > 0) {
             this.uploaded = 'rounded row'
+            console.log(this.uploaded)
           }
         })
         .catch((err) => {
@@ -78,7 +79,7 @@ export default defineComponent({
       this.loadingPosts = true
       // load posts from Heroku server via axios & express
       if (this.posts.length > 0) {
-        posts.forEach((post) => {
+        this.posts.forEach((post) => {
           console.log(post.fileUrl)
         })
       }
@@ -86,7 +87,7 @@ export default defineComponent({
   },
   computed: {
     computedResult() {
-      this.searchPosts()
+      // this.searchPosts()
       return this.searchPhrase
     },
   },

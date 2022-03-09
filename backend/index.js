@@ -22,7 +22,6 @@ initializeApp({
 
 const db = getFirestore();
 const bucket = getStorage().bucket();
-//const storage = getStorage();
 
 /*
   dependencies - busboy
@@ -42,9 +41,25 @@ let UUID = require('uuid-v4')
   config - express
 */
 const app = express()
+//app.use(fileUpload()); // Don't forget this line!
+
 let port = 3000
 
+/*
+  config - algolia
+*/
+const algoliasearch = require("algoliasearch");
+ // initialize algolia
+  const client = algoliasearch(
+    process.env.ALGOLIA_APP_ID,
+    process.env.ALGOLIA_API_KEY,
+  );
+  const index = client.initIndex(process.env.ALGOLIA_INDEX_NAME);
 
+let pdfjsLib = require('pdfjs-dist')
+let pdfjsWorker  = require('pdfjs-dist/build/pdf.worker.entry')
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 /*
   config - cors
 */
@@ -98,7 +113,6 @@ app.get('/posts', (request, response) => {
   //     })
   //     response.send(posts)
   //   })
-
 })
 
 /*
@@ -116,6 +130,9 @@ app.post('/posts-create', (request, response) => {
   let fields = {}
   let fileData = {}
 
+  let pdfFile = {}
+  let pdfUrl = ''
+
     //on-file hook do this for every file
   bb.on('file', (name, file, info) => {
     const { filename, encoding, mimeType } = info;
@@ -131,13 +148,18 @@ app.post('/posts-create', (request, response) => {
     // creates a writestream with the assigned filepath and writes it to the tmp folder
     file.pipe(fs.createWriteStream(filepath))
     // writes required stuff into a fileData object
-    fileData = {filepath, mimeType}
+    fileData = { filepath, mimeType }
+    // pdfFile = file
+    file.on("data", (data) => {
+      // ... and write the file's name, type and content into `fields`.
+      pdfFile = data
+      // console.log('pdfFile', pdfFile);
+    });
   });
 
   //on-field hook - do this for every field
   bb.on('field', (name, val, info) => {
     fields[name] = val
-    //console.log(`Field [${name}]: value: %j`, val);
   });
 
   // runs this when it's done processing all the data
@@ -167,6 +189,9 @@ app.post('/posts-create', (request, response) => {
     )
     // creates a file and post on firebase
     function createFile(uploadedFile) {
+      
+      pdfUrl = `https://firebasestorage.googleapis.com/v0/b/${ bucket.name }/o/${ uploadedFile.name }?alt=media&token=${ uuid }`
+
       // post fields to firestore
       db.collection('posts').doc(fields.id).set({
         id: fields.id,
@@ -174,9 +199,35 @@ app.post('/posts-create', (request, response) => {
         location: fields.location,
         // convert to integer
         date: parseInt(fields.date),
-        fileUrl: `https://firebasestorage.googleapis.com/v0/b/${ bucket.name }/o/${ uploadedFile.name }?alt=media&token=${ uuid }`
+        fileUrl: pdfUrl
       }).then( () => {
-        response.send('Post added: ' + fields.id )
+        
+        // index the document in algolia search
+        console.log('fileData', fileData);
+        console.log('pdfFile', pdfFile);
+
+        let loadingTask = pdfjsLib.getDocument(pdfUrl);
+        // loadingTask.promise.then(function (pdf) {
+        //   console.log('PDF loaded');
+
+          response.send('Post added: ' + fields.id)
+        // });
+  
+        
+         // load up PDFTron SDK without the WebViewer
+        // const CoreControls = window.CoreControls;
+        //CoreControls.setWorkerPath('/webviewer/core');
+        //const doc = await CoreControls.createDocument(pdfFile);
+        
+        //doc = pdfFile
+        // let i;
+       //console.log(doc.getPageCount());
+       //for (i = 0; i < doc.getPageCount(); i++) {
+        //   let pageNum = i + 1;
+        //   doc.loadPageText(i, text => pushData(text, pageNum));
+        //}
+        
+        
       })
     }
     console.log('Done parsing form. Demonic powers compel you');

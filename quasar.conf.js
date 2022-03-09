@@ -5,8 +5,8 @@
 
 // Configuration for your app
 // https://quasar.dev/quasar-cli/quasar-conf-js
-
 const { configure } = require('quasar/wrappers');
+const envparser = require('./src/config/envparser.js')
 
    //local && heroku backend API path
   let API_LOCAL =  'http://localhost:3000'
@@ -51,9 +51,9 @@ module.exports = configure(function (ctx) {
       vueRouterMode: 'hash', // available values: 'hash', 'history'
 
       // environment variables for switching between live and local server (Exporess)
-      env: {
-        API: API_LOCAL// API_LOCAL | API_PRODUCTION
-      },
+      env: envparser(),
+       // API_LOCAL | API_PRODUCTION
+  
 
       // transpile: false,
       // publicPath: '/',
