@@ -48,6 +48,8 @@ let port = 3000
 /*
   config - algolia
 */
+require('dotenv').config();
+// console.log(process.env)
 const algoliasearch = require("algoliasearch");
  // initialize algolia
   const client = algoliasearch(
@@ -204,28 +206,7 @@ app.post('/posts-create', (request, response) => {
         console.log('fileData', fileData);
         console.log('pdfFile', pdfFile);
 
-        // let loadingTask = pdfjsLib.getDocument(pdfUrl);
-        // loadingTask.promise.then(function (pdf) {
-        // console.log('PDF loaded');
-
-          response.send('Post added: ' + fields.id)
-        // });
-  
-        
-         // load up PDFTron SDK without the WebViewer
-        // const CoreControls = window.CoreControls;
-        //CoreControls.setWorkerPath('/webviewer/core');
-        //const doc = await CoreControls.createDocument(pdfFile);
-        
-        //doc = pdfFile
-        // let i;
-       //console.log(doc.getPageCount());
-       //for (i = 0; i < doc.getPageCount(); i++) {
-        //   let pageNum = i + 1;
-        //   doc.loadPageText(i, text => pushData(text, pageNum));
-        //}
-        
-        
+        response.send('Post added: ' + fields.id)
       })
     }
     console.log('Done parsing form. Demonic powers compel you');
@@ -278,39 +259,11 @@ app.delete('/delete/:id', (request, response) => {
 
 })
 
-
-
-
-// https://www.jsdelivr.com/package/npm/pdfjs-dist?path=build
-// https://cdn.jsdelivr.net/npm/pdfjs-dist@2.13.216/build/pdf.min.js
-// https://cdn.jsdelivr.net/npm/pdfjs-dist@2.13.216/build/pdf.worker.min.js
-
-
-// var pdfjs = require('pdfjs-dist/build/pdf.js');
-// let pdfjsWorker = 'pdfjs-dist/build/pdf.worker.js';
-// pdfjs.GlobalWorkerOptions.workerPort = pdfjsWorker;
-
-// var pdfjs = require('pdfjs-dist/build/pdf.js');
-//let pdfjsWorker = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.13.216/build/pdf.worker.min.js';
-//pdfjs.GlobalWorkerOptions.workerPort = pdfjsWorker;
-// We need to get the url of the worker (we use min for prod)
-
-
-/*
-  endpoint - pdf-test
-*/
-
-// pdfjsLib = require('../public/pdfjs/build/pdf.js');
-// let pdfjsWorker = require('../public/pdfjs/build/pdf.worker.js');
-// pdfjsLib.GlobalWorkerOptions.workerPort = pdfjsWorker
-
-//var myModule = require('../public/pdfjs/web/viewer.js');
-
+// legacy pdfjs to avoid webpack complications
 const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
 
 app.post('/pdf-test', (request, response) => {
   response.set("Access-Control-Allow-Origin", "*")
-
 
     // process response containing the form data via busboy
     const bus = busboy({ headers: request.headers });
@@ -324,38 +277,32 @@ app.post('/pdf-test', (request, response) => {
     // busboy close hook
     bus.on('close', () => {
       fileUrl = fields.fileUrl
-     
-      const pdfPath =
-        process.argv[2] || fileUrl;
+      fileName = fields.fileName
 
-    const t = pdfjsLib.getDocument(pdfPath);
-      t.promise.then(function (doc) {
-        console.log('got doc');
+      console.log('algae', process.env.ALGOLIA_APP_ID);
+         
+      const pdfPath = process.argv[2] || fileUrl;
+
+      const pdfJsPromise = pdfjsLib.getDocument(pdfPath);
+      
+      pdfJsPromise.promise.then(function (doc) {
+
         const i = doc.numPages;
-        console.log('maybe', i);
+        console.log(`Got doc with ${i} pages...`);
+        console.log();
 
         const numPages = doc.numPages;
 
         let lastPromise; // will be used to chain promises
         lastPromise = doc.getMetadata().then(function (data) {
-          console.log("# Metadata Is Loaded");
-          console.log("## Info");
-          console.log(JSON.stringify(data.info, null, 2));
-          console.log();
           if (data.metadata) {
-            console.log("## Metadata");
-            console.log(JSON.stringify(data.metadata.getAll(), null, 2));
-            console.log();
           }
-      });
+        });
 
-
-        const loadPage = function (pageNum) {
-          return doc.getPage(pageNum).then(function (page) {
-            console.log("# Page " + pageNum);
+        const loadPage = function (pageNumber) {
+          return doc.getPage(pageNumber).then(function (page) {
+            console.log("# Page " + pageNumber);
             const viewport = page.getViewport({ scale: 1.0 });
-            console.log("Size: " + viewport.width + "x" + viewport.height);
-            console.log();
             return page
               .getTextContent()
               .then(function (content) {
@@ -365,7 +312,24 @@ app.post('/pdf-test', (request, response) => {
                   return item.str;
                 });
                 console.log("## Text Content");
-                console.log(strings.join(" "));
+                fileText = strings.join(" ")
+                console.log(fileText);
+
+                // send to algolia
+                const re = /(?:\.([^.]+))?$/;
+                const ext = re.exec(fileName);
+                index.saveObject(
+                  {
+                    title: fileName,
+                    pageText: fileText,
+                    pageNumber,
+                    docRef: fileUrl,
+                    extension: ext[1]
+                  },
+                  {
+                    autoGenerateObjectIDIfNotExist: true,
+                  },
+                );
                 // Release page resources.
                 page.cleanup();
               })
@@ -379,18 +343,14 @@ app.post('/pdf-test', (request, response) => {
         for (let i = 1; i <= numPages; i++) {
           lastPromise = lastPromise.then(loadPage.bind(null, i));
         }
-
-
-
-
-      })
+      }) //t.promise.
       .catch(err => {
         console.log(err);
       });
 
-      console.log('Done djidjing. Demonic powers compel you');
-      response.send('I djidjed.')
-    })
+    console.log('Done djidjing. Demonic powers compel you');
+    response.send('I djidjed.')
+  })
   // actually run busboy
   request.pipe(bus);
     

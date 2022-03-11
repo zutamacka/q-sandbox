@@ -101,10 +101,11 @@ export default defineComponent({
         message: 'Djidjing...',
       })
 
-      console.log(this.post.fileUrl)
+      console.log(this.post)
 
       let formData = new FormData()
       formData.append('fileUrl', this.post.fileUrl)
+      formData.append('fileName', this.post.id)
       this.$axios
         .post(`${process.env.API}/pdf-test`, formData)
         .then((response) => {

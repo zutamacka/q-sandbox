@@ -28,7 +28,6 @@
       </template>
     </q-list>
     <q-item>
-      fhgfdjhgjdfgh
       <q-pdfviewer type="html5" src="https://www.orimi.com/pdf-test.pdf"
     /></q-item>
   </q-page>

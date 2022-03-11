@@ -6,7 +6,8 @@
   "author": "ZutaMacka <adrijana.radosevic@gmail.com>",
   "private": true,
   "scripts": {
-    "test": "echo \"No test specified\" && exit 0"
+    "test": "echo \"No test specified\" && exit 0",
+    "dev": "cross-env QENV=development quasar dev"
   },
   "dependencies": {
     "@quasar/extras": "^1.0.0",
@@ -20,7 +21,9 @@
   "devDependencies": {
     "@quasar/app": "^3.0.0",
     "@quasar/quasar-app-extension-dotenv": "^1.1.0",
-    "@quasar/quasar-app-extension-qpdfviewer": "^2.0.0-alpha.4"
+    "@quasar/quasar-app-extension-qenv": "^1.1.0",
+    "@quasar/quasar-app-extension-qpdfviewer": "^2.0.0-alpha.4",
+    "cross-env": "^7.0.3"
   },
   "browserslist": [
     "last 10 Chrome versions",
