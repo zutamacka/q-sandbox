@@ -324,14 +324,65 @@ app.post('/pdf-test', (request, response) => {
     // busboy close hook
     bus.on('close', () => {
       fileUrl = fields.fileUrl
-      fakeFileUrl = 'https://www.orimi.com/pdf-test.pdf'
+     
       const pdfPath =
-        process.argv[2] || 'https://www.orimi.com/pdf-test.pdf';
+        process.argv[2] || fileUrl;
 
     const t = pdfjsLib.getDocument(pdfPath);
       t.promise.then(function (doc) {
         console.log('got doc');
-        // console.log(doc);
+        const i = doc.numPages;
+        console.log('maybe', i);
+
+        const numPages = doc.numPages;
+
+        let lastPromise; // will be used to chain promises
+        lastPromise = doc.getMetadata().then(function (data) {
+          console.log("# Metadata Is Loaded");
+          console.log("## Info");
+          console.log(JSON.stringify(data.info, null, 2));
+          console.log();
+          if (data.metadata) {
+            console.log("## Metadata");
+            console.log(JSON.stringify(data.metadata.getAll(), null, 2));
+            console.log();
+          }
+      });
+
+
+        const loadPage = function (pageNum) {
+          return doc.getPage(pageNum).then(function (page) {
+            console.log("# Page " + pageNum);
+            const viewport = page.getViewport({ scale: 1.0 });
+            console.log("Size: " + viewport.width + "x" + viewport.height);
+            console.log();
+            return page
+              .getTextContent()
+              .then(function (content) {
+                // Content contains lots of information about the text layout and
+                // styles, but we need only strings at the moment
+                const strings = content.items.map(function (item) {
+                  return item.str;
+                });
+                console.log("## Text Content");
+                console.log(strings.join(" "));
+                // Release page resources.
+                page.cleanup();
+              })
+              .then(function () {
+                console.log();
+              });
+          });
+        };
+        // Loading of the first page will wait on metadata and subsequent loadings
+        // will wait on the previous pages.
+        for (let i = 1; i <= numPages; i++) {
+          lastPromise = lastPromise.then(loadPage.bind(null, i));
+        }
+
+
+
+
       })
       .catch(err => {
         console.log(err);
