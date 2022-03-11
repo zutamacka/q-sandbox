@@ -282,16 +282,17 @@ app.post('/pdf-test', (request, response) => {
       console.log('algae', process.env.ALGOLIA_APP_ID);
          
       const pdfPath = process.argv[2] || fileUrl;
+      //const pdfPath = fileUrl;
+      console.log('pdfpath, ', pdfPath);
 
       const pdfJsPromise = pdfjsLib.getDocument(pdfPath);
       
       pdfJsPromise.promise.then(function (doc) {
 
-        const i = doc.numPages;
-        console.log(`Got doc with ${i} pages...`);
-        console.log();
-
         const numPages = doc.numPages;
+
+        console.log(`Got doc with ${numPages} pages...`);
+        console.log();
 
         let lastPromise; // will be used to chain promises
         lastPromise = doc.getMetadata().then(function (data) {
