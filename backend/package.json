@@ -11,15 +11,17 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/pdfjs-dist": "^2.10.378",
     "algoliasearch": "^4.12.2",
     "busboy": "^1.4.0",
     "cors": "^2.8.5",
+    "entry-loader": "^0.2.0",
     "express": "^4.17.3",
     "express-fileupload": "^1.3.1",
     "firebase-admin": "^10.0.2",
     "nodemon": "^2.0.15",
-    "pdfjs": "^2.4.7",
     "pdfjs-dist": "^2.13.216",
+    "quasar-app-extension-db-pdf-viewer": "^1.1.2",
     "uuid-v4": "^0.1.0"
   }
 }

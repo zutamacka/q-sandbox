@@ -12,13 +12,15 @@
     "@quasar/extras": "^1.0.0",
     "axios": "^0.21.1",
     "core-js": "^3.6.5",
+    "pdfjs-dist": "^2.13.216",
     "quasar": "^2.0.0",
     "vue": "^3.0.0",
     "vue-router": "^4.0.0"
   },
   "devDependencies": {
     "@quasar/app": "^3.0.0",
-    "@quasar/quasar-app-extension-dotenv": "^1.1.0"
+    "@quasar/quasar-app-extension-dotenv": "^1.1.0",
+    "@quasar/quasar-app-extension-qpdfviewer": "^2.0.0-alpha.4"
   },
   "browserslist": [
     "last 10 Chrome versions",

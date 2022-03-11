@@ -7,6 +7,8 @@
 // https://quasar.dev/quasar-cli/quasar-conf-js
 const { configure } = require('quasar/wrappers');
 const envparser = require('./src/config/envparser.js')
+// laod
+//const pdfJSdist = require('pdfjs-dist/webpack').default
 
    //local && heroku backend API path
   let API_LOCAL =  'http://localhost:3000'
@@ -25,6 +27,9 @@ module.exports = configure(function (ctx) {
     // https://quasar.dev/quasar-cli/boot-files
     boot: [
       'axios',
+      'pdfJSdist'
+      //{ path: './backend/node_modules/pdfjs-dist/build/pdf.worker.js', client: false }, // this boot file gets embedded only on server-side
+      //{ path: './backend/node_modules/pdfjs-dist/build/pdf.js', client: false } // this boot file gets embedded only on server-side
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
@@ -74,9 +79,14 @@ module.exports = configure(function (ctx) {
 
       // https://quasar.dev/quasar-cli/handling-webpack
       // "chain" is a webpack-chain object https://github.com/neutrinojs/webpack-chain
-      chainWebpack (/* chain */) {
-        //
+      chainWebpack (chain) {
+        chain.output.set('globalObject', 'this')
       },
+    //   extendWebpack(cfg) {
+    //     cfg.plugins.push(pdfJSdist({
+    //         // settings go here, stays empty
+    //     }))
+    //  }
     },
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-devServer

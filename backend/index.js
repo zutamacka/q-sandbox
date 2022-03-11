@@ -56,10 +56,7 @@ const algoliasearch = require("algoliasearch");
   );
   const index = client.initIndex(process.env.ALGOLIA_INDEX_NAME);
 
-let pdfjsLib = require('pdfjs-dist')
-let pdfjsWorker  = require('pdfjs-dist/build/pdf.worker.entry')
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 /*
   config - cors
 */
@@ -126,6 +123,7 @@ app.post('/posts-create', (request, response) => {
 
   // process response containing the form data via busboy
   const bb = busboy({ headers: request.headers });
+
   
   let fields = {}
   let fileData = {}
@@ -206,9 +204,9 @@ app.post('/posts-create', (request, response) => {
         console.log('fileData', fileData);
         console.log('pdfFile', pdfFile);
 
-        let loadingTask = pdfjsLib.getDocument(pdfUrl);
+        // let loadingTask = pdfjsLib.getDocument(pdfUrl);
         // loadingTask.promise.then(function (pdf) {
-        //   console.log('PDF loaded');
+        // console.log('PDF loaded');
 
           response.send('Post added: ' + fields.id)
         // });
@@ -232,9 +230,9 @@ app.post('/posts-create', (request, response) => {
     }
     console.log('Done parsing form. Demonic powers compel you');
   });
+  // actually run busboy
   request.pipe(bb);
 })
-
 
 /*
   endpoint - delete post
@@ -280,3 +278,69 @@ app.delete('/delete/:id', (request, response) => {
 
 })
 
+
+
+
+// https://www.jsdelivr.com/package/npm/pdfjs-dist?path=build
+// https://cdn.jsdelivr.net/npm/pdfjs-dist@2.13.216/build/pdf.min.js
+// https://cdn.jsdelivr.net/npm/pdfjs-dist@2.13.216/build/pdf.worker.min.js
+
+
+// var pdfjs = require('pdfjs-dist/build/pdf.js');
+// let pdfjsWorker = 'pdfjs-dist/build/pdf.worker.js';
+// pdfjs.GlobalWorkerOptions.workerPort = pdfjsWorker;
+
+// var pdfjs = require('pdfjs-dist/build/pdf.js');
+//let pdfjsWorker = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.13.216/build/pdf.worker.min.js';
+//pdfjs.GlobalWorkerOptions.workerPort = pdfjsWorker;
+// We need to get the url of the worker (we use min for prod)
+
+
+/*
+  endpoint - pdf-test
+*/
+
+// pdfjsLib = require('../public/pdfjs/build/pdf.js');
+// let pdfjsWorker = require('../public/pdfjs/build/pdf.worker.js');
+// pdfjsLib.GlobalWorkerOptions.workerPort = pdfjsWorker
+
+//var myModule = require('../public/pdfjs/web/viewer.js');
+
+const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
+
+app.post('/pdf-test', (request, response) => {
+  response.set("Access-Control-Allow-Origin", "*")
+
+
+    // process response containing the form data via busboy
+    const bus = busboy({ headers: request.headers });
+
+    let fields = {}
+    //on-field hook - do this for every field
+    bus.on('field', (name, val, info) => {
+      fields[name] = val
+    });
+    
+    // busboy close hook
+    bus.on('close', () => {
+      fileUrl = fields.fileUrl
+      fakeFileUrl = 'https://www.orimi.com/pdf-test.pdf'
+      const pdfPath =
+        process.argv[2] || 'https://www.orimi.com/pdf-test.pdf';
+
+    const t = pdfjsLib.getDocument(pdfPath);
+      t.promise.then(function (doc) {
+        console.log('got doc');
+        // console.log(doc);
+      })
+      .catch(err => {
+        console.log(err);
+      });
+
+      console.log('Done djidjing. Demonic powers compel you');
+      response.send('I djidjed.')
+    })
+  // actually run busboy
+  request.pipe(bus);
+    
+})

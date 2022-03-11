@@ -1,5 +1,5 @@
 <template>
-  <q-item class="col-11" clickable v-ripple @click="showFile">
+  <q-item class="col-10" clickable v-ripple @click="showFile">
     <q-item-section class="col-1" avatar>
       <q-icon color="secondary" name="picture_as_pdf" />
     </q-item-section>
@@ -25,6 +25,17 @@
       color="secondary"
       icon="delete"
       @click="deletePost"
+    />
+  </div>
+
+  <div class="col-1">
+    <q-btn
+      flat
+      round
+      class="q-pa-xs"
+      color="secondary"
+      icon="border_color"
+      @click="djidja"
     />
   </div>
 </template>
@@ -82,6 +93,44 @@ export default defineComponent({
         })
         .finally(() => {
           // this.$q.loading.hide()
+        })
+    },
+    djidja() {
+      console.log('I log the djidja')
+      this.$q.loading.show({
+        message: 'Djidjing...',
+      })
+
+      console.log(this.post.fileUrl)
+
+      let formData = new FormData()
+      formData.append('fileUrl', this.post.fileUrl)
+      this.$axios
+        .post(`${process.env.API}/pdf-test`, formData)
+        .then((response) => {
+          console.log(response)
+          // send to the Home page after a successful post
+          this.$router.push('/')
+          // notify about posting
+          this.$q.notify({
+            message: 'Djidja Done.',
+            actions: [
+              {
+                label: 'Dismiss',
+                color: 'primary',
+              },
+            ],
+          })
+        })
+        .catch((err) => {
+          console.log('error ', err)
+          this.$q.dialog({
+            title: 'Error',
+            message: 'Djidja failed.',
+          })
+        })
+        .finally(() => {
+          this.$q.loading.hide()
         })
     },
   },
