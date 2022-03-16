@@ -26,8 +26,6 @@
             </template>
           </q-input>
 
-          <q-item-label caption lines="2">{{ computedResult }} </q-item-label>
-
           <q-list bordered separator :class="uploaded">
             <template v-if="posts.length">
               <found-post v-for="post in foundPosts" :key="post.id" :post="post" />
@@ -104,12 +102,10 @@ export default defineComponent({
         })
     },
   },
-  computed: {
-    computedResult() {
-      // this.searchPosts()
-      // console.log(process.env.ALGOLIA_APP_ID)
-      // console.log(this.TsenseClient.collections().retrieve())
-      this.foundPosts = []
+  watch: {
+    searchPhrase(value) {
+      console.log(value)
+
       if (this.searchPhrase.length) {
         let searchParameters = {
           q: this.searchPhrase,
@@ -118,17 +114,21 @@ export default defineComponent({
           // filter_by: 'fileUrl',
           // sort_by: 'num_employees:desc',
         }
-        this.TsenseClient.collections(Collection)
+        this.TsenseClient.collections(this.Collection)
           .documents()
           .search(searchParameters)
           .then((data) => {
+            this.foundPosts = []
             data.hits.forEach((hit) => {
-              console.log(hit.document)
+              // console.log(hit.document)
               this.foundPosts.push(hit.document)
             })
           })
-        console.log('found posts: ', this.foundPosts)
-        // return this.searchPhrase
+          .then(() => {
+            console.log('found posts: ', this.foundPosts.length)
+          })
+      } else {
+        this.foundPosts = []
       }
     },
   },
