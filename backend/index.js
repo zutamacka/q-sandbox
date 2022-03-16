@@ -68,7 +68,7 @@ let TsenseClient = new Typesense.Client({
   'apiKey': process.env.TYPESENSE_API_KEY,
   'connectionTimeoutSeconds': 2
 })
-
+const Collection = process.env.TYPESENSE_COLLECTION
 /*
   config - cors
 */
@@ -265,7 +265,7 @@ app.post('/posts-create', (request, response) => {
                       "fileUrl": fileUrl, 
                       "description" : fileDesc
                     }
-                    TsenseClient.collections('catalogues').documents().create(document)
+                    TsenseClient.collections(Collection).documents().create(document)
                     // Release page resources.
                     page.cleanup();
                   })
@@ -324,7 +324,7 @@ app.delete('/delete/:id', (request, response) => {
           // if the file is deleted, proceed to delete the post
           db.collection('posts').doc(post.id).delete()
           .then(() => {
-            TsenseClient.collections('catalogues').documents().delete({ 'filter_by': `name : ${ post.id }` })
+            TsenseClient.collections(Collection).documents().delete({ 'filter_by': `name : ${ post.id }` })
               // maybe batch this if it's only 1 document https://typesense.org/docs/0.22.2/api/documents.html#delete-a-single-document
               //client.collections('companies').documents().delete({'filter_by': 'num_employees:>100'})
              .then(() => {  
@@ -369,14 +369,14 @@ app.post('/pdf-test', (request, response) => {
       fileUrl = fields.fileUrl
       fileName = fields.fileName
 
-      console.log('algae', process.env.ALGOLIA_APP_ID);
-         
       const pdfPath = process.argv[2] || fileUrl;
-      //const pdfPath = fileUrl;
+
       console.log('pdfpath, ', pdfPath);
 
       const pdfJsPromise = pdfjsLib.getDocument(pdfPath);
       
+      let allText = 'starts here'
+
       pdfJsPromise.promise.then(function (doc) {
 
         const numPages = doc.numPages;
@@ -384,55 +384,100 @@ app.post('/pdf-test', (request, response) => {
         console.log(`Got doc with ${numPages} pages...`);
         console.log();
 
-        let lastPromise; // will be used to chain promises
-        lastPromise = doc.getMetadata().then(function (data) {
-          if (data.metadata) {
-          }
+        let pagesPromises = [];
+
+        for (let i = 0; i < doc.numPages; i++) {
+            // Required to prevent that i is always the total of pages
+            (function (pageNumber) {
+                pagesPromises.push(getPageText(pageNumber, doc));
+            })(i + 1);
+        }
+
+        Promise.all(pagesPromises).then(function (pagesText) {
+          //pagesText.forEach(txt => console.log(txt))
+          
+          allText = pagesText.join(" ")
+          console.log(allText);
         });
 
-        const loadPage = function (pageNumber) {
-          return doc.getPage(pageNumber).then(function (page) {
-            console.log("# Page " + pageNumber);
-            const viewport = page.getViewport({ scale: 1.0 });
-            return page
-              .getTextContent()
-              .then(function (content) {
-                // Content contains lots of information about the text layout and
-                // styles, but we need only strings at the moment
-                const strings = content.items.map(function (item) {
-                  return item.str;
-                });
-                console.log("## Text Content");
-                fileText = strings.join(" ")
-                console.log(fileText);
-                let fileDesc = 'Itty Mojo'
-                // send to typesense
-                let document = {
-                  "name": fileName,
-                  "text": fileText,
-                  "fileUrl": fileUrl, 
-                  "description" : fileDesc
-                }
-                TsenseClient.collections('catalogues').documents().create(document)
+  /**
+     * Retrieves the text of a specif page within a PDF Document obtained through pdf.js 
+     * 
+     **/
+    function getPageText(pageNum, PDFDocumentInstance) {
+        // Return a Promise that is solved once the text of the page is retrieven
+        return new Promise(function (resolve, reject) {
+            PDFDocumentInstance.getPage(pageNum).then(function (pdfPage) {
+                // The main trick to obtain the text of the PDF page, use the getTextContent method
+                pdfPage.getTextContent().then(function (content) {
+                  
+                    const strings = content.items.map(function (item) {
+                         return item.str;
+                    });
+                    fileText = strings.join(" ")
 
-                // Release page resources.
-                page.cleanup();
-              })
-              .then(function () {
-                console.log();
-              });
-          });
-        };
+
+                  
+                    // Solve promise with the text retrieven from the page
+                    resolve(fileText);
+                });
+            });
+        });
+    }
+
+
+
+        // let lastPromise; // will be used to chain promises
+        // lastPromise = doc.getMetadata().then(function (data) {
+        //   if (data.metadata) {
+        //   }
+        // });
+
+        // const loadPage = function (pageNumber) {
+        //   return doc.getPage(pageNumber).then(function (page) {
+        //     console.log("# Page " + pageNumber);
+        //     const viewport = page.getViewport({ scale: 1.0 });
+        //     return page
+        //       .getTextContent()
+        //       .then(function (content) {
+        //         // Content contains lots of information about the text layout and
+        //         // styles, but we need only strings at the moment
+        //         const strings = content.items.map(function (item) {
+        //           return item.str;
+        //         });
+        //         console.log("## Text Content");
+        //         fileText = strings.join(" ")
+        //         allText = allText.concat(' ', fileText )
+        //         console.log(fileText);
+        //         let fileDesc = 'Itty Mojo'
+        //         // send to typesense
+        //         let document = {
+        //           "name": fileName,
+        //           "text": fileText,
+        //           "fileUrl": fileUrl, 
+        //           "description" : fileDesc
+        //         }
+        //         //TsenseClient.collections(Collection).documents().create(document)
+
+        //         // Release page resources.
+        //         page.cleanup();
+        //       })
+        //       .then(function () {
+        //         console.log();
+        //       });
+        //   });
+        // };
+        
         // Loading of the first page will wait on metadata and subsequent loadings
         // will wait on the previous pages.
-        for (let i = 1; i <= numPages; i++) {
-          lastPromise = lastPromise.then(loadPage.bind(null, i));
-        }
+        // for (let i = 1; i <= numPages; i++) {
+        //   lastPromise = lastPromise.then(loadPage.bind(null, i));
+        // }
       }) //t.promise.
       .catch(err => {
         console.log(err);
       });
-
+    
     console.log('Done djidjing. Demonic powers compel you');
     response.send('I djidjed.')
   })
