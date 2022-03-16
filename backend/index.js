@@ -202,6 +202,11 @@ app.post('/posts-create', (request, response) => {
       
       pdfUrl = `https://firebasestorage.googleapis.com/v0/b/${ bucket.name }/o/${ uploadedFile.name }?alt=media&token=${ uuid }`
 
+      //  for PDF detection
+                    // send to algolia
+                    // const re = /(?:\.([^.]+))?$/;
+                    // const ext = re.exec(fileName);
+
       // post fields to firestore
       db.collection('posts').doc(fields.id).set({
         id: fields.id,
@@ -261,17 +266,15 @@ app.post('/posts-create', (request, response) => {
                       "description" : fileDesc
                     }
                     TsenseClient.collections('catalogues').documents().create(document)
-
-                    // send to algolia
-                    // const re = /(?:\.([^.]+))?$/;
-                    // const ext = re.exec(fileName);
-
                     // Release page resources.
                     page.cleanup();
                   })
                   .then(function () {
                     console.log('Done parsing form. Demonic powers compel you');
-                     response.send('Post added: ' + fields.id)
+                    
+                  })
+                  .catch(err => {
+                  console.log(err);
                   });
               });
             };
@@ -280,6 +283,7 @@ app.post('/posts-create', (request, response) => {
             for (let i = 1; i <= numPages; i++) {
               lastPromise = lastPromise.then(loadPage.bind(null, i));
             }
+            response.send('Post added: ' + fields.id)
           }) //pdfJsPromise.promise.
           .catch(err => {
             console.log(err);
