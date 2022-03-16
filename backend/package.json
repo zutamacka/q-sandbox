@@ -12,7 +12,6 @@
   "license": "ISC",
   "dependencies": {
     "@types/pdfjs-dist": "^2.10.378",
-    "algoliasearch": "^4.12.2",
     "busboy": "^1.4.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.0",
