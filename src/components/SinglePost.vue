@@ -97,6 +97,7 @@ export default defineComponent({
     },
     djidj() {
       console.log('djidj.')
+      console.log('api key: ', process.env.TYPESENSE_API_KEY)
     },
     // this is a testing function for uploading content to algolia
     djidja() {
