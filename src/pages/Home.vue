@@ -1,5 +1,9 @@
 <template>
   <q-page class="constrain q-pa-md">
+    <ais-instant-search index-name="indexName" :search-client="searchClient">
+      <!-- Widgets -->
+    </ais-instant-search>
+
     <q-item>
       <q-item-section>
         <q-input v-model="searchPhrase" class="col col-sm-8" label="Search *" dense>
@@ -39,8 +43,12 @@ import { date } from 'quasar'
 import SinglePost from '../components/SinglePost.vue'
 import SkeletonPost from '../components/SkeletonPost.vue'
 import NoPosts from '../components/NoPosts.vue'
+// algolia 1
+import algoliasearch from 'algoliasearch/lite'
+import { AisInstantSearch, AisSearchBox } from 'vue-instantsearch/vue3/es'
+
 export default defineComponent({
-  components: { SinglePost, SkeletonPost, NoPosts },
+  components: { SinglePost, SkeletonPost, NoPosts, AisInstantSearch },
   name: 'PageHome',
   data() {
     return {
@@ -49,6 +57,13 @@ export default defineComponent({
       searchPhrase: '',
       loadingPosts: false,
       uploaded: 'rounded',
+      // algolia 2
+      searchClient: algoliasearch(
+        process.env.ALGOLIA_APP_ID,
+        process.env.ALGOLIA_SEARCH_KEY
+      ),
+      indexName: process.env.ALGOLIA_INDEX_NAME,
+      //  index: client.initIndex(process.env.ALGOLIA_INDEX_NAME),
     }
   },
   methods: {
@@ -65,7 +80,7 @@ export default defineComponent({
           console.log(this.posts.length, this.posts)
           if (this.posts.length > 0) {
             this.uploaded = 'rounded row'
-            console.log(this.uploaded)
+            // console.log(this.uploaded)
           }
         })
         .catch((err) => {
@@ -78,19 +93,23 @@ export default defineComponent({
           this.loadingPosts = false
         })
     },
-    searchPosts() {
-      this.loadingPosts = true
-      // load posts from Heroku server via axios & express
-      if (this.posts.length > 0) {
-        this.posts.forEach((post) => {
-          console.log(post.fileUrl)
-        })
-      }
-    },
   },
   computed: {
     computedResult() {
       // this.searchPosts()
+      // console.log(process.env.ALGOLIA_APP_ID)
+      let index = this.searchClient.initIndex(this.indexName)
+      console.log(index)
+      // index
+      //   .setSettings({
+      //     searchableAttributes: ['text'],
+      //   })
+      //   .then(() => {
+      //     // done
+      //   })
+
+      // searchClient = { searchClient }
+      // setSearchTerm(searchState.query)
       return this.searchPhrase
     },
   },

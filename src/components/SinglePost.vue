@@ -95,6 +95,10 @@ export default defineComponent({
           // this.$q.loading.hide()
         })
     },
+    djidj() {
+      console.log('djidj.')
+    },
+    // this is a testing function for uploading content to algolia
     djidja() {
       console.log('I log the djidja')
       this.$q.loading.show({

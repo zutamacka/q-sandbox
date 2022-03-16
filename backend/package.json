@@ -23,6 +23,7 @@
     "nodemon": "^2.0.15",
     "pdfjs-dist": "^2.13.216",
     "quasar-app-extension-db-pdf-viewer": "^1.1.2",
+    "typesense": "^1.2.2",
     "uuid-v4": "^0.1.0"
   }
 }

@@ -28,8 +28,6 @@ module.exports = configure(function (ctx) {
     boot: [
       'axios',
       'pdfJSdist'
-      //{ path: './backend/node_modules/pdfjs-dist/build/pdf.worker.js', client: false }, // this boot file gets embedded only on server-side
-      //{ path: './backend/node_modules/pdfjs-dist/build/pdf.js', client: false } // this boot file gets embedded only on server-side
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
