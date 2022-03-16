@@ -224,8 +224,6 @@ app.post('/posts-create', (request, response) => {
         
           // extract PDF text
           const pdfPath = process.argv[2] || fileUrl;
-          //const pdfPath = fileUrl;
-          console.log('pdfpath, ', pdfPath);
 
           const pdfJsPromise = pdfjsLib.getDocument(pdfPath); 
         
@@ -235,54 +233,51 @@ app.post('/posts-create', (request, response) => {
 
             console.log(`Got doc with ${numPages} pages...`);
             // console.log();
+            let pagesPromises = [];
 
-            let lastPromise; // will be used to chain promises
-            lastPromise = doc.getMetadata().then(function (data) {
-              if (data.metadata) {
+            for (let i = 1; i <= doc.numPages; i++) {
+                pagesPromises.push(getPageText(i, doc));
+            }
+
+            Promise.all(pagesPromises).then(function (pagesText) {
+              // join text
+              fileText = pagesText.join(" ")
+              
+              // send text to typesense
+              let document = {
+                "name": fileName,
+                "text": fileText,
+                "fileUrl": fileUrl, 
+                "description" : fileDesc
               }
+              TsenseClient.collections(Collection).documents().create(document)
+                .then(function () { 
+                  console.log('Done Parsing form and inserting to dbases. Demonic powers compel you.');
+                })
+                .catch(err => {
+                  console.log(err);
+                });
             });
 
-            const loadPage = function (pageNumber) {
-              return doc.getPage(pageNumber).then(function (page) {
-                // console.log("# Page " + pageNumber);
-                const viewport = page.getViewport({ scale: 1.0 });
-                return page
-                  .getTextContent()
-                  .then(function (content) {
-                    // Content contains lots of information about the text layout and
-                    // styles, but we need only strings at the moment
-                    const strings = content.items.map(function (item) {
-                      return item.str;
+                // Retrieves the text of a specif page within a PDF Document obtained through pdf.js
+                function getPageText(pageNum, PDFDocumentInstance) {
+                  // Return a Promise that is solved once the text of the page is retrieven
+                  return new Promise(function (resolve, reject) {
+                    PDFDocumentInstance.getPage(pageNum).then(function (pdfPage) {
+                      // The main trick to obtain the text of the PDF page, use the getTextContent method
+                      pdfPage.getTextContent().then(function (content) {
+                            
+                        const strings = content.items.map(function (item) {
+                          return item.str;
+                        });
+                        fileText = strings.join(" ")
+                        // Solve promise with the text retrieven from the page
+                        resolve(fileText);
+                      });
                     });
-                    // console.log("## Text Content");
-                    fileText = strings.join(" ")
-                    console.log(fileText);
-
-                   // send text to typesense
-                    let document = {
-                      "name": fileName,
-                      "text": fileText,
-                      "fileUrl": fileUrl, 
-                      "description" : fileDesc
-                    }
-                    TsenseClient.collections(Collection).documents().create(document)
-                    // Release page resources.
-                    page.cleanup();
-                  })
-                  .then(function () {
-                    console.log('Done parsing form. Demonic powers compel you');
-                    
-                  })
-                  .catch(err => {
-                  console.log(err);
                   });
-              });
-            };
-            // Loading of the first page will wait on metadata and subsequent loadings
-            // will wait on the previous pages.
-            for (let i = 1; i <= numPages; i++) {
-              lastPromise = lastPromise.then(loadPage.bind(null, i));
-            }
+                }
+
             response.send('Post added: ' + fields.id)
           }) //pdfJsPromise.promise.
           .catch(err => {
@@ -290,7 +285,7 @@ app.post('/posts-create', (request, response) => {
           });
       })
     }
-    console.log('Done parsing form. Demonic powers compel you');
+
   });
   // actually run busboy
   request.pipe(bb);
@@ -345,13 +340,10 @@ app.delete('/delete/:id', (request, response) => {
   .catch((error) => {
       console.log("Error getting posts: ", error);
   });
-
-
-
 })
 
 
-
+// this is a test djidja.
 app.post('/pdf-test', (request, response) => {
   response.set("Access-Control-Allow-Origin", "*")
 
@@ -395,12 +387,11 @@ app.post('/pdf-test', (request, response) => {
 
         Promise.all(pagesPromises).then(function (pagesText) {
           //pagesText.forEach(txt => console.log(txt))
-          
           allText = pagesText.join(" ")
           console.log(allText);
         });
 
-  /**
+    /**
      * Retrieves the text of a specif page within a PDF Document obtained through pdf.js 
      * 
      **/
@@ -424,55 +415,6 @@ app.post('/pdf-test', (request, response) => {
             });
         });
     }
-
-
-
-        // let lastPromise; // will be used to chain promises
-        // lastPromise = doc.getMetadata().then(function (data) {
-        //   if (data.metadata) {
-        //   }
-        // });
-
-        // const loadPage = function (pageNumber) {
-        //   return doc.getPage(pageNumber).then(function (page) {
-        //     console.log("# Page " + pageNumber);
-        //     const viewport = page.getViewport({ scale: 1.0 });
-        //     return page
-        //       .getTextContent()
-        //       .then(function (content) {
-        //         // Content contains lots of information about the text layout and
-        //         // styles, but we need only strings at the moment
-        //         const strings = content.items.map(function (item) {
-        //           return item.str;
-        //         });
-        //         console.log("## Text Content");
-        //         fileText = strings.join(" ")
-        //         allText = allText.concat(' ', fileText )
-        //         console.log(fileText);
-        //         let fileDesc = 'Itty Mojo'
-        //         // send to typesense
-        //         let document = {
-        //           "name": fileName,
-        //           "text": fileText,
-        //           "fileUrl": fileUrl, 
-        //           "description" : fileDesc
-        //         }
-        //         //TsenseClient.collections(Collection).documents().create(document)
-
-        //         // Release page resources.
-        //         page.cleanup();
-        //       })
-        //       .then(function () {
-        //         console.log();
-        //       });
-        //   });
-        // };
-        
-        // Loading of the first page will wait on metadata and subsequent loadings
-        // will wait on the previous pages.
-        // for (let i = 1; i <= numPages; i++) {
-        //   lastPromise = lastPromise.then(loadPage.bind(null, i));
-        // }
       }) //t.promise.
       .catch(err => {
         console.log(err);
@@ -485,3 +427,177 @@ app.post('/pdf-test', (request, response) => {
   request.pipe(bus);
     
 })
+
+
+
+/*
+  endpoint - create post PAGE BY PAGE
+*/
+// app.post('/posts-create', (request, response) => {
+//   response.set("Access-Control-Allow-Origin", "*")
+
+//   // create an uuid for this
+//   let uuid = UUID()
+
+//   // process response containing the form data via busboy
+//   const bb = busboy({ headers: request.headers });
+
+  
+//   let fields = {}
+//   let fileData = {}
+
+//   let pdfFile = {}
+//   let pdfUrl = ''
+
+//     //on-file hook do this for every file
+//   bb.on('file', (name, file, info) => {
+//     const { filename, encoding, mimeType } = info;
+//     console.log(
+//       `File [${name}]: filename: %j, encoding: %j, mimeType: %j`,
+//       filename,
+//       encoding,
+//       mimeType
+//     );
+//     // write the file to the tmp folder on the server
+//     // gets the filepath by joining the tmpdir() path from the os package and the filename
+//     let filepath = path.join(os.tmpdir(), filename)
+//     // creates a writestream with the assigned filepath and writes it to the tmp folder
+//     file.pipe(fs.createWriteStream(filepath))
+//     // writes required stuff into a fileData object
+//     fileData = { filepath, mimeType }
+//     // pdfFile = file
+//     file.on("data", (data) => {
+//       // ... and write the file's name, type and content into `fields`.
+//       pdfFile = data
+//       // console.log('pdfFile', pdfFile);
+//     });
+//   });
+
+//   //on-field hook - do this for every field
+//   bb.on('field', (name, val, info) => {
+//     fields[name] = val
+//   });
+
+//   // runs this when it's done processing all the data
+//   // here is where you actually insert stuff into the firestore db
+//   bb.on('close', () => {
+//     console.log('fields: ', fields);
+
+//     // upload the file from the tmp folder on the server into the firestore storage bucket
+//     bucket.upload(
+//       fileData.filepath, 
+//       {
+//         uploadType: 'media',
+//         metadata: {
+//           metadata: {
+//             contentType: fileData.mimeType,
+//             firebaseStorageDownloadTokens: uuid
+//           }
+//         },
+//       },
+//       (err, uploadedFile) => {
+//         if (!err) {
+//           createFile(uploadedFile)
+//         }
+//         else 
+//           console.log(err);
+//       }
+//     )
+//     // creates a file and post on firebase
+//     function createFile(uploadedFile) {
+      
+//       pdfUrl = `https://firebasestorage.googleapis.com/v0/b/${ bucket.name }/o/${ uploadedFile.name }?alt=media&token=${ uuid }`
+
+//       //  for PDF detection
+//                     // send to algolia
+//                     // const re = /(?:\.([^.]+))?$/;
+//                     // const ext = re.exec(fileName);
+
+//       // post fields to firestore
+//       db.collection('posts').doc(fields.id).set({
+//         id: fields.id,
+//         caption: fields.caption,
+//         location: fields.location,
+//         // convert to integer
+//         date: parseInt(fields.date),
+//         fileUrl: pdfUrl
+//       }).then( () => {
+        
+//         // index the document in typesense search
+//         fileUrl = pdfUrl
+//         fileName = fields.id
+//         fileDesc = fields.caption
+        
+//           // extract PDF text
+//           const pdfPath = process.argv[2] || fileUrl;
+//           //const pdfPath = fileUrl;
+//           console.log('pdfpath, ', pdfPath);
+
+//           const pdfJsPromise = pdfjsLib.getDocument(pdfPath); 
+        
+//           pdfJsPromise.promise.then(function (doc) {
+
+//             const numPages = doc.numPages;
+
+//             console.log(`Got doc with ${numPages} pages...`);
+//             // console.log();
+
+//             let lastPromise; // will be used to chain promises
+//             lastPromise = doc.getMetadata().then(function (data) {
+//               if (data.metadata) {
+//               }
+//             });
+
+//             const loadPage = function (pageNumber) {
+//               return doc.getPage(pageNumber).then(function (page) {
+//                 // console.log("# Page " + pageNumber);
+//                 const viewport = page.getViewport({ scale: 1.0 });
+//                 return page
+//                   .getTextContent()
+//                   .then(function (content) {
+//                     // Content contains lots of information about the text layout and
+//                     // styles, but we need only strings at the moment
+//                     const strings = content.items.map(function (item) {
+//                       return item.str;
+//                     });
+//                     // console.log("## Text Content");
+//                     fileText = strings.join(" ")
+//                     console.log(fileText);
+
+//                    // send text to typesense
+//                     let document = {
+//                       "name": fileName,
+//                       "text": fileText,
+//                       "fileUrl": fileUrl, 
+//                       "description" : fileDesc
+//                     }
+//                     TsenseClient.collections(Collection).documents().create(document)
+//                     // Release page resources.
+//                     page.cleanup();
+//                   })
+//                   .then(function () {
+//                     console.log('Done parsing form. Demonic powers compel you');
+                    
+//                   })
+//                   .catch(err => {
+//                   console.log(err);
+//                   });
+//               });
+//             };
+//             // Loading of the first page will wait on metadata and subsequent loadings
+//             // will wait on the previous pages.
+//             for (let i = 1; i <= numPages; i++) {
+//               lastPromise = lastPromise.then(loadPage.bind(null, i));
+//             }
+//             response.send('Post added: ' + fields.id)
+//           }) //pdfJsPromise.promise.
+//           .catch(err => {
+//             console.log(err);
+//           });
+//       })
+//     }
+//     console.log('Done parsing form. Demonic powers compel you');
+//   });
+//   // actually run busboy
+//   request.pipe(bb);
+// })
