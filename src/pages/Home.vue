@@ -99,7 +99,8 @@ export default defineComponent({
       let searchParameters = {
         q: this.searchPhrase,
         query_by: 'text',
-        // filter_by: 'num_employees:>100',
+        // group_by: 'fileUrl',
+        // filter_by: 'fileUrl',
         // sort_by: 'num_employees:desc',
       }
       this.TsenseClient.collections('catalogues')
