@@ -39,6 +39,7 @@ import { date } from 'quasar'
 import SinglePost from '../components/SinglePost.vue'
 import SkeletonPost from '../components/SkeletonPost.vue'
 import NoPosts from '../components/NoPosts.vue'
+import Typesense from 'typesense'
 
 export default defineComponent({
   components: { SinglePost, SkeletonPost, NoPosts },
@@ -50,6 +51,17 @@ export default defineComponent({
       searchPhrase: '',
       loadingPosts: false,
       uploaded: 'rounded',
+      TsenseClient: new Typesense.Client({
+        nodes: [
+          {
+            host: process.env.TYPESENSE_NODES, //Typesense Cloud cluster
+            port: '443',
+            protocol: 'https',
+          },
+        ],
+        apiKey: process.env.TYPESENSE_API_KEY,
+        connectionTimeoutSeconds: 2,
+      }),
     }
   },
   methods: {
@@ -66,7 +78,6 @@ export default defineComponent({
           console.log(this.posts.length, this.posts)
           if (this.posts.length > 0) {
             this.uploaded = 'rounded row'
-            // console.log(this.uploaded)
           }
         })
         .catch((err) => {
@@ -84,17 +95,22 @@ export default defineComponent({
     computedResult() {
       // this.searchPosts()
       // console.log(process.env.ALGOLIA_APP_ID)
+      // console.log(this.TsenseClient.collections().retrieve())
+      let searchParameters = {
+        q: this.searchPhrase,
+        query_by: 'text',
+        // filter_by: 'num_employees:>100',
+        // sort_by: 'num_employees:desc',
+      }
+      this.TsenseClient.collections('catalogues')
+        .documents()
+        .search(searchParameters)
+        .then(function (data) {
+          data.hits.forEach((hit) => {
+            console.log(hit.document.fileUrl)
+          })
+        })
 
-      // index
-      //   .setSettings({
-      //     searchableAttributes: ['text'],
-      //   })
-      //   .then(() => {
-      //     // done
-      //   })
-
-      // searchClient = { searchClient }
-      // setSearchTerm(searchState.query)
       return this.searchPhrase
     },
   },
