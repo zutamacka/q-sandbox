@@ -53,24 +53,13 @@ let port = 3000
 const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
 
 /*
-  config - algolia
+  config - typesense
 */
 require('dotenv').config();
 // console.log(process.env)
-const algoliasearch = require("algoliasearch");
- // initialize algolia
-  const client = algoliasearch(
-    process.env.ALGOLIA_APP_ID,
-    process.env.ALGOLIA_API_KEY,
-  );
-  const index = client.initIndex(process.env.ALGOLIA_INDEX_NAME);
-
-/*
-  config - typesense
-*/
 // import Typesense from 'typesense'
 const Typesense = require('typesense');
-let TSclient = new Typesense.Client({
+let TsenseClient = new Typesense.Client({
   'nodes': [{
     'host':  process.env.TYPESENSE_NODES, //Typesense Cloud cluster
     'port': '443',
@@ -223,10 +212,12 @@ app.post('/posts-create', (request, response) => {
         fileUrl: pdfUrl
       }).then( () => {
         
-        // index the document in algolia search
-          fileUrl = pdfUrl
-          fileName = fields.id
-
+        // index the document in typesense search
+        fileUrl = pdfUrl
+        fileName = fields.id
+        fileDesc = fields.caption
+        
+          // extract PDF text
           const pdfPath = process.argv[2] || fileUrl;
           //const pdfPath = fileUrl;
           console.log('pdfpath, ', pdfPath);
@@ -260,23 +251,21 @@ app.post('/posts-create', (request, response) => {
                     });
                     // console.log("## Text Content");
                     fileText = strings.join(" ")
-                    // console.log(fileText);
+                    console.log(fileText);
+
+                   // send text to typesense
+                    let document = {
+                      "name": fileName,
+                      "text": fileText,
+                      "fileUrl": fileUrl, 
+                      "description" : fileDesc
+                    }
+                    TsenseClient.collections('catalogues').documents().create(document)
 
                     // send to algolia
-                    const re = /(?:\.([^.]+))?$/;
-                    const ext = re.exec(fileName);
-                    index.saveObject(
-                      {
-                        title: fileName,
-                        pageText: fileText,
-                        pageNumber,
-                        docRef: fileUrl,
-                        extension: ext[1]
-                      },
-                      {
-                        autoGenerateObjectIDIfNotExist: true,
-                      },
-                    );
+                    // const re = /(?:\.([^.]+))?$/;
+                    // const ext = re.exec(fileName);
+
                     // Release page resources.
                     page.cleanup();
                   })
@@ -412,24 +401,8 @@ app.post('/pdf-test', (request, response) => {
                   "fileUrl": fileUrl, 
                   "description" : fileDesc
                 }
-                TSclient.collections('catalogues').documents().create(document)
+                TsenseClient.collections('catalogues').documents().create(document)
 
-                // send to algolia
-                //const re = /(?:\.([^.]+))?$/;
-                //const ext = re.exec(fileName);
-
-                // index.saveObject(
-                //   {
-                //     title: fileName,
-                //     pageText: fileText,
-                //     pageNumber,
-                //     docRef: fileUrl,
-                //     extension: ext[1]
-                //   },
-                //   {
-                //     autoGenerateObjectIDIfNotExist: true,
-                //   },
-                // );
                 // Release page resources.
                 page.cleanup();
               })
