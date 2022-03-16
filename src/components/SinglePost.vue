@@ -35,7 +35,7 @@
       class="q-pa-xs"
       color="secondary"
       icon="border_color"
-      @click="djidja"
+      @click="djidj"
     />
   </div>
 </template>

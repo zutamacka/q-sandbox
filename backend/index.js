@@ -270,7 +270,8 @@ app.post('/posts-create', (request, response) => {
                     page.cleanup();
                   })
                   .then(function () {
-                    console.log();
+                    console.log('Done parsing form. Demonic powers compel you');
+                     response.send('Post added: ' + fields.id)
                   });
               });
             };
@@ -283,9 +284,6 @@ app.post('/posts-create', (request, response) => {
           .catch(err => {
             console.log(err);
           });
-      
-
-        response.send('Post added: ' + fields.id)
       })
     }
     console.log('Done parsing form. Demonic powers compel you');
@@ -312,15 +310,25 @@ app.delete('/delete/:id', (request, response) => {
         
         // get the post
         post = doc.data()
+
         //create the fileName
         let fileName = post.id + '.pdf'
+
       
         const file = bucket.file(fileName);
         file.delete().then(() => {
           // if the file is deleted, proceed to delete the post
           db.collection('posts').doc(post.id).delete()
           .then(() => {
-            console.log('post ' + post.id + ' deleted');
+            TsenseClient.collections('catalogues').documents().delete({ 'filter_by': `name : ${ post.id }` })
+              // maybe batch this if it's only 1 document https://typesense.org/docs/0.22.2/api/documents.html#delete-a-single-document
+              //client.collections('companies').documents().delete({'filter_by': 'num_employees:>100'})
+             .then(() => {  
+              console.log('post ' + post.id + ' deleted');
+             })
+             .catch((error) => {
+                console.log('post not deleted in TypeSense', error );
+             });            
           })
           .catch((error) => {
             console.log('post not deleted', error );
