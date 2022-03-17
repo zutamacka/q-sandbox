@@ -6,7 +6,7 @@
 
     <q-item-section class="col-10">
       <q-item-label caption lines="1">
-        {{ post.description }}
+        {{ post.caption }}
       </q-item-label>
     </q-item-section>
   </q-item>

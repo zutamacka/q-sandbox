@@ -120,7 +120,8 @@ app.get('/posts', (request, response) => {
   //     snapshotChange.forEach((doc) => {
   //       posts.push(doc.data())
   //     })
-  //     response.send(posts)
+  //     console.log('Im in a snapshot demon');
+  //     return response.send(posts)
   //   })
 })
 
@@ -200,13 +201,8 @@ app.post('/posts-create', (request, response) => {
     // creates a file and post on firebase
     function createFile(uploadedFile) {
       
-      pdfUrl = `https://firebasestorage.googleapis.com/v0/b/${ bucket.name }/o/${ uploadedFile.name }?alt=media&token=${ uuid }`
-
-      //  for PDF detection
-                    // send to algolia
-                    // const re = /(?:\.([^.]+))?$/;
-                    // const ext = re.exec(fileName);
-
+      pdfUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${uploadedFile.name}?alt=media&token=${uuid}`
+      
       // post fields to firestore
       db.collection('posts').doc(fields.id).set({
         id: fields.id,
@@ -248,7 +244,7 @@ app.post('/posts-create', (request, response) => {
                 "name": fileName,
                 "text": fileText,
                 "fileUrl": fileUrl, 
-                "description" : fileDesc
+                "caption" : fileDesc
               }
               TsenseClient.collections(Collection).documents().create(document)
                 .then(function () { 
@@ -278,7 +274,7 @@ app.post('/posts-create', (request, response) => {
                   });
                 }
 
-            response.send('Post added: ' + fields.id)
+            return response.send('Post added: ' + fields.id)
           }) //pdfJsPromise.promise.
           .catch(err => {
             console.log(err);
@@ -323,7 +319,8 @@ app.delete('/delete/:id', (request, response) => {
               // maybe batch this if it's only 1 document https://typesense.org/docs/0.22.2/api/documents.html#delete-a-single-document
               //client.collections('companies').documents().delete({'filter_by': 'num_employees:>100'})
              .then(() => {  
-              console.log('post ' + post.id + ' deleted');
+               console.log('post ' + post.id + ' deleted');
+               return
              })
              .catch((error) => {
                 console.log('post not deleted in TypeSense', error );

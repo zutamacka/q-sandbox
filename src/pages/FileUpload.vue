@@ -55,6 +55,7 @@
         </template>
       </q-list>
     </div>
+    <q-item> <q-pdfviewer type="pdfjs" :src="pdfLink" /></q-item>
   </q-page>
 </template>
 
@@ -94,9 +95,17 @@ export default defineComponent({
       fileUpload: [],
       apiOsMap: 'https://nominatim.openstreetmap.org/',
       loadingLocation: false,
+      // view
+      pdfLink: '',
     }
   },
   methods: {
+    // view
+    pdfLinkUp() {
+      this.pdfLink =
+        'https://mozilla.github.io/pdf.js/web/viewer.html?file=https://cors-anywhere.herokuapp.com/corsdemo/' +
+        'https://www.orimi.com/pdf-test.pdf'
+    },
     // load
     getPosts() {
       this.loadingPosts = true
@@ -166,13 +175,18 @@ export default defineComponent({
           })
         })
         .finally(() => {
+          this.post.file = []
+          this.fileUpload = []
+          this.post.caption = ''
+          this.buttonColor = 'secondary'
           this.$q.loading.hide()
         })
     },
     uploadFile(e) {
       this.post.file = e.target.files[0]
-      this.post.caption = this.post.file.name
+      this.post.caption = this.post.file.name.replace('.pdf', '')
       this.buttonColor = 'positive'
+      console.log(this.post.file)
     },
     // resolve location methods
     locationSupported() {
@@ -228,6 +242,7 @@ export default defineComponent({
   },
   created() {
     this.getPosts()
+    this.pdfLinkUp()
   },
   mounted() {},
   beforeDestroy() {},

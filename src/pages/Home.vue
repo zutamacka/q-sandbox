@@ -2,24 +2,7 @@
   <q-page class="constrain q-pa-md">
     <div class="q-pa-md">
       <div class="row">
-        <div class="col-8">
-          <q-item-label header>Files</q-item-label>
-
-          <q-list bordered separator :class="uploaded">
-            <template v-if="!loadingPosts && posts.length">
-              <single-post v-for="post in posts" :key="post.id" :post="post" />
-            </template>
-
-            <template v-else-if="!loadingPosts && !posts.length">
-              <no-posts />
-            </template>
-            <template v-else>
-              <skeleton-post />
-            </template>
-          </q-list>
-        </div>
-
-        <div class="col-4">
+        <div class="col-12">
           <q-input v-model="searchPhrase" class="" label="Search *" dense>
             <template v-slot:prepend>
               <q-icon name="search" />
@@ -28,14 +11,12 @@
 
           <q-list bordered separator :class="uploaded">
             <template v-if="posts.length">
-              <found-post v-for="post in foundPosts" :key="post.id" :post="post" />
+              <found-post v-for="post in posts" :key="post.id" :post="post" />
             </template>
           </q-list>
         </div>
       </div>
     </div>
-
-    <q-item> <q-pdfviewer type="pdfjs" :src="pdfLink" /></q-item>
   </q-page>
 </template>
 
@@ -54,11 +35,9 @@ export default defineComponent({
   data() {
     return {
       posts: [],
-      foundPosts: [],
       searchPhrase: '',
       loadingPosts: false,
       uploaded: 'rounded',
-      pdfLink: '',
       TsenseClient: new Typesense.Client({
         nodes: [
           {
@@ -74,11 +53,6 @@ export default defineComponent({
     }
   },
   methods: {
-    pdfLinkUp() {
-      this.pdfLink =
-        'https://mozilla.github.io/pdf.js/web/viewer.html?file=https://cors-anywhere.herokuapp.com/corsdemo/' +
-        'https://www.orimi.com/pdf-test.pdf'
-    },
     niceDate(value) {
       return date.formatDate(value, 'MMMM DD h:mmA')
     },
@@ -122,14 +96,14 @@ export default defineComponent({
           .documents()
           .search(searchParameters)
           .then((data) => {
-            this.foundPosts = []
+            this.posts = []
             data.hits.forEach((hit) => {
               // console.log(hit.document)
-              this.foundPosts.push(hit.document)
+              this.posts.push(hit.document)
             })
           })
           .then(() => {
-            console.log('found posts: ', this.foundPosts.length)
+            console.log('found posts: ', this.posts.length)
           })
       } else {
         this.foundPosts = []
@@ -138,7 +112,6 @@ export default defineComponent({
   },
   created() {
     this.getPosts()
-    this.pdfLinkUp()
   },
 })
 </script>
