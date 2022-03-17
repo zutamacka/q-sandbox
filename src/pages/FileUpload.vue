@@ -1,6 +1,7 @@
 <template>
   <q-page class="constrain q-pa-md">
     <q-item>
+      <div class="col-1 q-gutter-lg q-pr-sm"></div>
       <div class="col-2 q-gutter-lg q-pr-sm">
         <q-file
           name="cover_files"
@@ -23,7 +24,7 @@
         </q-file>
       </div>
 
-      <div class="col-9">
+      <div class="col-8">
         <q-input v-model="post.caption" class="col col-sm-8" label="Caption *" dense />
       </div>
       <div class="col-1 q-gutter-lg q-p-sm">
@@ -37,6 +38,23 @@
         />
       </div>
     </q-item>
+
+    <div class="col-12">
+      <q-item-label header>Uploaded files</q-item-label>
+
+      <q-list bordered separator :class="uploaded">
+        <template v-if="!loadingPosts && posts.length">
+          <single-post v-for="post in posts" :key="post.id" :post="post" />
+        </template>
+
+        <template v-else-if="!loadingPosts && !posts.length">
+          <no-posts />
+        </template>
+        <template v-else>
+          <skeleton-post />
+        </template>
+      </q-list>
+    </div>
   </q-page>
 </template>
 
@@ -44,7 +62,12 @@
 import { defineComponent } from 'vue'
 import { uid } from 'quasar'
 import { ref } from 'vue'
+import { date } from 'quasar'
+import SinglePost from '../components/SinglePost.vue'
+import SkeletonPost from '../components/SkeletonPost.vue'
+import NoPosts from '../components/NoPosts.vue'
 export default defineComponent({
+  components: { SinglePost, SkeletonPost, NoPosts },
   name: 'FileUpload',
   setup() {
     return {
@@ -54,6 +77,11 @@ export default defineComponent({
   },
   data() {
     return {
+      // load
+      posts: [],
+      loadingPosts: false,
+      uploaded: 'rounded',
+      // upload
       post: {
         id: uid(),
         caption: '',
@@ -69,6 +97,31 @@ export default defineComponent({
     }
   },
   methods: {
+    // load
+    getPosts() {
+      this.loadingPosts = true
+      // load posts from Heroku server via axios & express
+      this.$axios
+        .get(`${process.env.API}/posts`)
+        .then((response) => {
+          this.posts = response.data
+          /// console.log(this.posts.length, this.posts)
+          if (this.posts.length > 0) {
+            this.uploaded = 'rounded row'
+          }
+        })
+        .catch((err) => {
+          this.$q.dialog({
+            title: 'Error',
+            message: 'Data Not Loaded.',
+          })
+          console.log('error: ', err)
+        })
+        .finally(() => {
+          this.loadingPosts = false
+        })
+    },
+    // upload
     pawst() {
       this.$q.loading.show({
         message: 'Posting...',
@@ -93,7 +146,7 @@ export default defineComponent({
         .then((response) => {
           //console.log(response)
           // send to the Home page after a successful post
-          this.$router.push('/')
+          this.$router.push('/upload')
           // notify about posting
           this.$q.notify({
             message: 'File Uploaded.',
@@ -118,9 +171,9 @@ export default defineComponent({
     },
     uploadFile(e) {
       this.post.file = e.target.files[0]
+      this.post.caption = this.post.file.name
       this.buttonColor = 'positive'
     },
-
     // resolve location methods
     locationSupported() {
       if ('geolocation' in navigator) return true
@@ -172,6 +225,9 @@ export default defineComponent({
     pawstButtonColor() {
       return !this.post.caption.length || !this.post.file ? 'grey-5' : 'secondary'
     },
+  },
+  created() {
+    this.getPosts()
   },
   mounted() {},
   beforeDestroy() {},

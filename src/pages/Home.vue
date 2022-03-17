@@ -35,9 +35,7 @@
       </div>
     </div>
 
-    <q-item>
-      <q-pdfviewer type="html5" src="https://www.orimi.com/pdf-test.pdf"
-    /></q-item>
+    <q-item> <q-pdfviewer type="pdfjs" :src="pdfLink" /></q-item>
   </q-page>
 </template>
 
@@ -60,6 +58,7 @@ export default defineComponent({
       searchPhrase: '',
       loadingPosts: false,
       uploaded: 'rounded',
+      pdfLink: '',
       TsenseClient: new Typesense.Client({
         nodes: [
           {
@@ -75,6 +74,11 @@ export default defineComponent({
     }
   },
   methods: {
+    pdfLinkUp() {
+      this.pdfLink =
+        'https://mozilla.github.io/pdf.js/web/viewer.html?file=https://cors-anywhere.herokuapp.com/corsdemo/' +
+        'https://www.orimi.com/pdf-test.pdf'
+    },
     niceDate(value) {
       return date.formatDate(value, 'MMMM DD h:mmA')
     },
@@ -134,6 +138,7 @@ export default defineComponent({
   },
   created() {
     this.getPosts()
+    this.pdfLinkUp()
   },
 })
 </script>
