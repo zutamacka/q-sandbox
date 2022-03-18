@@ -348,10 +348,6 @@ app.post('/pdf-test', (request, response) => {
                          return item.str;
                     });
                     fileText = strings.join(" ")
-
-
-                  
-                    // Solve promise with the text retrieven from the page
                     resolve(fileText);
                 });
             });
