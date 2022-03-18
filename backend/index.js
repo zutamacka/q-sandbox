@@ -339,8 +339,9 @@ app.delete('/delete/:id', (request, response) => {
   });
 })
 
-
-// this is a test djidja.
+/*
+  endpoint - create posts from pdf files in a folder
+*/
 app.post('/pdf-test', (request, response) => {
   response.set("Access-Control-Allow-Origin", "*")
 
@@ -360,7 +361,7 @@ app.post('/pdf-test', (request, response) => {
 
       const pdfPath = process.argv[2] || fileUrl;
 
-      console.log('pdfpath, ', pdfPath);
+      //console.log('pdfpath, ', pdfPath);
 
       const pdfJsPromise = pdfjsLib.getDocument(pdfPath);
       
@@ -389,7 +390,7 @@ app.post('/pdf-test', (request, response) => {
         });
 
     /**
-     * Retrieves the text of a specif page within a PDF Document obtained through pdf.js 
+     * Retrieves the text of a specified page within a PDF Document obtained through pdf.js 
      * 
      **/
     function getPageText(pageNum, PDFDocumentInstance) {
@@ -423,6 +424,131 @@ app.post('/pdf-test', (request, response) => {
   // actually run busboy
   request.pipe(bus);
     
+})
+
+// this is a create test djidja.
+app.post('/pdf-test-create', (request, response) => {
+  response.set("Access-Control-Allow-Origin", "*")
+
+  //requiring path and fs modules
+  const path = require('path');
+  const fs = require('fs');
+  //joining path of directory 
+  let directoryPath = path.join(__dirname, '');
+  directoryPath = directoryPath.replace('backend', 'public\\pdfjs\\catalogues') 
+  
+  console.log('directoryPath', directoryPath);
+
+  //passsing directoryPath and callback function
+  fs.readdir(directoryPath, function (err, files) {
+      //handling error
+      if (err) {
+          return console.log('Unable to scan directory: ' + err);
+      } 
+      //listing all files using forEach
+      files.forEach(function (file) {
+          // Do whatever you want to do with the file
+        let uuid = UUID()
+        let fileName = file.replace('.pdf', '')
+        let fileUrl = path.join(directoryPath, file);
+
+        // post fields to firestore
+        db.collection('posts').doc(uuid).set({
+          id: uuid,
+          caption: fileName,
+          location: '',
+          // convert to integer
+          date: parseInt(Date.now()),
+          fileUrl: fileUrl
+        }).then(() => {
+          console.log('Posted to firestore.');
+
+        // extract PDF text
+        // const pdfPath = process.argv[2] || fileUrl;
+
+          const pdfJsPromise = pdfjsLib.getDocument(fileUrl); 
+        
+          pdfJsPromise.promise.then(function (doc) {
+
+            const numPages = doc.numPages;
+
+            console.log(`Got doc with ${numPages} pages...`);
+            let pagesPromises = [];
+
+            for (let i = 1; i <= doc.numPages; i++) {
+                pagesPromises.push(getPageText(i, doc));
+            }
+
+            Promise.all(pagesPromises).then(function (pagesText) {
+              // join text
+              let fileText = pagesText.join(" ")
+              console.log(fileText);
+              
+              // send text to typesense
+              let document = {
+                "name": fileName,
+                "text": fileText,
+                "fileUrl": fileUrl, 
+                "caption" : fileName
+              }
+              TsenseClient.collections(Collection).documents().create(document)
+                .then(function () { 
+                  console.log('Done Parsing form and inserting to dbases. Demonic powers compel you.');
+                })
+                .catch(err => {
+                  console.log(err);
+                });
+            });
+
+                // Retrieves the text of a specif page within a PDF Document obtained through pdf.js
+                function getPageText(pageNum, PDFDocumentInstance) {
+                  // Return a Promise that is solved once the text of the page is retrieven
+                  return new Promise(function (resolve, reject) {
+                    PDFDocumentInstance.getPage(pageNum).then(function (pdfPage) {
+                      // The main trick to obtain the text of the PDF page, use the getTextContent method
+                      pdfPage.getTextContent().then(function (content) {
+                            
+                        const strings = content.items.map(function (item) {
+                          return item.str;
+                        });
+                        fileText = strings.join(" ")
+                        // Solve promise with the text retrieven from the page
+                        resolve(fileText);
+                      });
+                    });
+                  });
+                }
+          }) //pdfJsPromise.promise.
+          .catch(err => {
+            console.log(err);
+          });
+        })
+      });
+  });
+
+  console.log('Demonic djidja done.');
+  response.send('I djidjed.')
+})
+
+
+
+/*
+  endpoint - delete post
+*/
+// https://expressjs.com/en/guide/routing.html
+app.delete('/test-delete', (request, response) => {
+  // access for Heroku
+  response.set("Access-Control-Allow-Origin", "*")
+
+   db.collection('posts').listDocuments().then(val => {
+        val.map((val) => {
+            val.delete()
+        })
+    })
+
+  let post = {}
+  console.log('delete djidja');
+  response.send('I delete djidjed.')
 })
 
 

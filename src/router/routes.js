@@ -6,6 +6,7 @@ const routes = [
       { path: "", component: () => import("src/pages/Home.vue") },
       { path: "/upload", component: () => import("src/pages/FileUpload.vue") },
       { path: "/delete", component: () => import("src/pages/DeletePost.vue") },
+      { path: "/test-delete", component: () => import("src/pages/DeletePost.vue") },
     ],
   },
 

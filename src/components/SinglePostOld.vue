@@ -38,32 +38,60 @@
       @click="djidj"
     />
   </div>
+
   <!-- Pdfjs viewer dialog -->
-  <pdf-viewer :post="post" :showDialog="showPdfViewer" @hideDialog="hidePdfViewer" />
+  <q-dialog v-model="showDialog" :maximized="$q.screen.lt.md">
+    <q-card
+      class="no-scroll bg-secondary"
+      style="min-width: 80vw; min-height: 90vh; width: 100%; height: 100%"
+    >
+      <q-bar class="bg-brand-light">
+        <p class="text-subtitle2 q-ma-md" style="color: white">{{ title }}</p>
+        <q-space></q-space>
+        <q-btn @click="hideDialog" color="white" flat icon="close"></q-btn>
+      </q-bar>
+
+      <div class="fit">
+        <q-pdfviewer type="pdfjs" :src="src" />
+      </div>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
 import { date } from 'quasar'
 import { defineComponent } from 'vue'
-import PdfViewer from './PdfViewer.vue'
+import { ref } from 'vue'
 export default defineComponent({
-  components: { PdfViewer },
   name: 'SinglePost',
   props: {
     post: Object,
     name: String,
   },
-  data() {
+  setup(props) {
+    const showDialog = ref(false)
+
+    function onClick() {
+      showDialog.value = true
+    }
+
+    function hideDialog() {
+      showDialog.value = false
+    }
     return {
-      showPdfViewer: false,
+      src: `../catalogues/${props.post.fileUrl.split('\\').pop()}`,
+      title: props.post.caption.substring(0, 50),
+      showDialog,
+      onClick,
+      hideDialog,
     }
   },
+  data() {
+    return {}
+  },
   methods: {
-    onClick() {
-      this.showPdfViewer = true
-    },
-    hidePdfViewer(value) {
-      this.showPdfViewer = value
+    showFile() {
+      this.$emit('fileUrl', this.post.fileUrl)
     },
     niceDate(value) {
       return date.formatDate(value, 'MMMM DD h:mmA')

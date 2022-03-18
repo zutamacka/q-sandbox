@@ -38,7 +38,12 @@
         />
       </div>
     </q-item>
-
+    <q-item>
+      <div class="col-12 q-gutter-lg q-p-sm">
+        <q-btn flat round color="secondary" icon="pets" @click="addAllFiles" />
+        <q-btn flat round color="secondary" icon="delete" @click="deleteAllFirestore" />
+      </div>
+    </q-item>
     <div class="col-12">
       <q-item-label header>Uploaded files</q-item-label>
 
@@ -55,7 +60,6 @@
         </template>
       </q-list>
     </div>
-    <q-item> <q-pdfviewer type="pdfjs" :src="pdfLink" /></q-item>
   </q-page>
 </template>
 
@@ -100,11 +104,78 @@ export default defineComponent({
     }
   },
   methods: {
-    // view
-    pdfLinkUp() {
-      this.pdfLink =
-        'https://mozilla.github.io/pdf.js/web/viewer.html?file=https://cors-anywhere.herokuapp.com/corsdemo/' +
-        'https://www.orimi.com/pdf-test.pdf'
+    addAllFiles() {
+      console.log('I log the djidja')
+      this.$q.loading.show({
+        message: 'Djidjing...',
+      })
+
+      console.log(this.post)
+
+      let formData = new FormData()
+      formData.append('fileUrl', this.post.fileUrl)
+      formData.append('fileName', this.post.id)
+      this.$axios
+        .post(`${process.env.API}/pdf-test-create`, formData)
+        .then((response) => {
+          console.log(response)
+          // send to the Home page after a successful post
+          // this.$router.push('/')
+          // notify about posting
+          this.$q.notify({
+            message: 'Djidja Done.',
+            actions: [
+              {
+                label: 'Dismiss',
+                color: 'primary',
+              },
+            ],
+          })
+        })
+        .catch((err) => {
+          console.log('error ', err)
+          this.$q.dialog({
+            title: 'Error',
+            message: 'Djidja failed.',
+          })
+        })
+        .finally(() => {
+          this.$q.loading.hide()
+        })
+    },
+    deleteAllFirestore() {
+      console.log('I log the djidja')
+      this.$q.loading.show({
+        message: 'Djidjing...',
+      })
+
+      this.$axios
+        .delete(`${process.env.API}/test-delete`, {})
+        .then((response) => {
+          console.log(response)
+          // send to the Home page after a successful post
+          // this.$router.push('/')
+          // notify about posting
+          this.$q.notify({
+            message: 'Djidja Done.',
+            actions: [
+              {
+                label: 'Dismiss',
+                color: 'primary',
+              },
+            ],
+          })
+        })
+        .catch((err) => {
+          console.log('error ', err)
+          this.$q.dialog({
+            title: 'Error',
+            message: 'Djidja failed.',
+          })
+        })
+        .finally(() => {
+          this.$q.loading.hide()
+        })
     },
     // load
     getPosts() {
@@ -242,10 +313,7 @@ export default defineComponent({
   },
   created() {
     this.getPosts()
-    this.pdfLinkUp()
   },
-  mounted() {},
-  beforeDestroy() {},
 })
 </script>
 <style lang="sass">
