@@ -3,10 +3,10 @@ const routes = [
     path: "/",
     component: () => import("layouts/MainLayout.vue"),
     children: [
-      { path: "", component: () => import("src/pages/Home.vue") },
-      { path: "/upload", component: () => import("src/pages/FileUpload.vue") },
+      { path: "", component: () => import("src/pages/Search.vue") },
+      { path: "/upload", component: () => import("src/pages/FileAdmin.vue") },
       { path: "/delete", component: () => import("src/pages/DeletePost.vue") },
-      { path: "/test-delete", component: () => import("src/pages/DeletePost.vue") },
+      { path: "/delete-firestore", component: () => import("src/pages/DeletePost.vue") },
     ],
   },
 

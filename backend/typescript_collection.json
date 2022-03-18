@@ -2,7 +2,8 @@
   "name": "catalogues",
   "fields": [
     {
-      "name": "name",
+      "name": "id",
+      "optional": "false",
       "type": "string"
     },
     {

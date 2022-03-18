@@ -115,8 +115,4 @@ export default defineComponent({
   },
 })
 </script>
-<style lang="sass">
-.card-post
-  .q-img
-    min-height:200px
-</style>
+<style lang="sass"></style>

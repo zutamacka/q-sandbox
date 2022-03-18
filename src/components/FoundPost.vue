@@ -36,16 +36,6 @@ export default defineComponent({
     hidePdfViewer(value) {
       this.showPdfViewer = value
     },
-    djidj() {
-      console.log('djidj.')
-    },
-    setParams() {
-      this.src = `../catalogues/${this.post.fileUrl.split('\\').pop()}`
-      console.log('setParams executed.')
-    },
-  },
-  computed() {
-    this.setParams()
   },
 })
 </script>

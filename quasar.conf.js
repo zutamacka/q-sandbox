@@ -8,11 +8,6 @@
 const { configure } = require('quasar/wrappers');
 const envparser = require('./src/config/envparser.js')
 // laod
-//const pdfJSdist = require('pdfjs-dist/webpack').default
-
-   //local && heroku backend API path
-  let API_LOCAL =  'http://localhost:3000'
-  let API_PRODUCTION =  'https://kitsta-backend.herokuapp.com'
 
 module.exports = configure(function (ctx) {
   return {
@@ -55,8 +50,6 @@ module.exports = configure(function (ctx) {
 
       // environment variables for switching between live and local server (Exporess)
       env: envparser(),
-       // API_LOCAL | API_PRODUCTION
-  
 
       // transpile: false,
       // publicPath: '/',

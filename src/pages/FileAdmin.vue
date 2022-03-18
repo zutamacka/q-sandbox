@@ -38,12 +38,30 @@
         />
       </div>
     </q-item>
-    <q-item>
-      <div class="col-12 q-gutter-lg q-p-sm">
-        <q-btn flat round color="secondary" icon="pets" @click="addAllFiles" />
-        <q-btn flat round color="secondary" icon="delete" @click="deleteAllFirestore" />
+
+    <q-item class="row justify-center q-gutter-sm q-p-sm">
+      <div>
+        <q-btn
+          icon="pets"
+          label="Reload"
+          stack
+          dense
+          color="secondary"
+          @click="refreshAllFiles"
+        />
+      </div>
+      <div>
+        <q-btn
+          icon="delete"
+          label="Delete All"
+          stack
+          dense
+          color="secondary"
+          @click="deleteAllData"
+        />
       </div>
     </q-item>
+
     <div class="col-12">
       <q-item-label header>Uploaded files</q-item-label>
 
@@ -67,7 +85,6 @@
 import { defineComponent } from 'vue'
 import { uid } from 'quasar'
 import { ref } from 'vue'
-import { date } from 'quasar'
 import SinglePost from '../components/SinglePost.vue'
 import SkeletonPost from '../components/SkeletonPost.vue'
 import NoPosts from '../components/NoPosts.vue'
@@ -104,26 +121,17 @@ export default defineComponent({
     }
   },
   methods: {
-    addAllFiles() {
-      console.log('I log the djidja')
+    refreshAllFiles() {
       this.$q.loading.show({
-        message: 'Djidjing...',
+        message: 'Refreshing databases...',
       })
-
-      console.log(this.post)
-
-      let formData = new FormData()
-      formData.append('fileUrl', this.post.fileUrl)
-      formData.append('fileName', this.post.id)
       this.$axios
-        .post(`${process.env.API}/pdf-test-create`, formData)
+        .post(`${process.env.API}/refresh-all-files`, {})
         .then((response) => {
-          console.log(response)
-          // send to the Home page after a successful post
           // this.$router.push('/')
           // notify about posting
           this.$q.notify({
-            message: 'Djidja Done.',
+            message: 'Refresh done.',
             actions: [
               {
                 label: 'Dismiss',
@@ -136,28 +144,26 @@ export default defineComponent({
           console.log('error ', err)
           this.$q.dialog({
             title: 'Error',
-            message: 'Djidja failed.',
+            message: 'Refresh failed.',
           })
         })
         .finally(() => {
           this.$q.loading.hide()
         })
     },
-    deleteAllFirestore() {
+    // deletes all data from firestore and typesense
+    deleteAllData() {
       console.log('I log the djidja')
       this.$q.loading.show({
-        message: 'Djidjing...',
+        message: 'Deleting data...',
       })
 
       this.$axios
-        .delete(`${process.env.API}/test-delete`, {})
+        .delete(`${process.env.API}/delete-firestore`, {})
         .then((response) => {
           console.log(response)
-          // send to the Home page after a successful post
-          // this.$router.push('/')
-          // notify about posting
           this.$q.notify({
-            message: 'Djidja Done.',
+            message: 'Data deleted.',
             actions: [
               {
                 label: 'Dismiss',
@@ -170,7 +176,7 @@ export default defineComponent({
           console.log('error ', err)
           this.$q.dialog({
             title: 'Error',
-            message: 'Djidja failed.',
+            message: 'Delete failed.',
           })
         })
         .finally(() => {
@@ -203,107 +209,62 @@ export default defineComponent({
     },
     // upload
     pawst() {
-      this.$q.loading.show({
-        message: 'Posting...',
-      })
+      console.log('Im suspended')
 
-      // get location
-      if (this.locationSupported()) {
-        this.getLocation()
-        console.log('location set', this.post.location)
-      } else {
-        post.location = 'unknown'
-      }
+      // this.$q.loading.show({
+      //   message: 'Posting...',
+      // })
 
-      let formData = new FormData()
-      formData.append('id', this.post.id)
-      formData.append('caption', this.post.caption)
-      formData.append('date', this.post.date)
-      formData.append('location', this.post.location)
-      formData.append('file', this.post.file, this.post.id + '.pdf')
-      this.$axios
-        .post(`${process.env.API}/posts-create`, formData)
-        .then((response) => {
-          //console.log(response)
-          // send to the Home page after a successful post
-          this.$router.push('/upload')
-          // notify about posting
-          this.$q.notify({
-            message: 'File Uploaded.',
-            actions: [
-              {
-                label: 'Dismiss',
-                color: 'primary',
-              },
-            ],
-          })
-        })
-        .catch((err) => {
-          console.log('error ', err)
-          this.$q.dialog({
-            title: 'Error',
-            message: 'Upload failed.',
-          })
-        })
-        .finally(() => {
-          this.post.file = []
-          this.fileUpload = []
-          this.post.caption = ''
-          this.buttonColor = 'secondary'
-          this.$q.loading.hide()
-        })
+      // // get location
+      // if (this.locationSupported()) {
+      //   this.getLocation()
+      //   console.log('location set', this.post.location)
+      // } else {
+      //   post.location = 'unknown'
+      // }
+
+      // let formData = new FormData()
+      // formData.append('id', this.post.id)
+      // formData.append('caption', this.post.caption)
+      // formData.append('date', this.post.date)
+      // formData.append('file', this.post.file, this.post.id + '.pdf')
+      // this.$axios
+      //   .post(`${process.env.API}/post-create`, formData)
+      //   .then((response) => {
+      //     //console.log(response)
+      //     // send to the Home page after a successful post
+      //     this.$router.push('/upload')
+      //     // notify about posting
+      //     this.$q.notify({
+      //       message: 'File Uploaded.',
+      //       actions: [
+      //         {
+      //           label: 'Dismiss',
+      //           color: 'primary',
+      //         },
+      //       ],
+      //     })
+      //   })
+      //   .catch((err) => {
+      //     console.log('error ', err)
+      //     this.$q.dialog({
+      //       title: 'Error',
+      //       message: 'Upload failed.',
+      //     })
+      //   })
+      //   .finally(() => {
+      //     this.post.file = []
+      //     this.fileUpload = []
+      //     this.post.caption = ''
+      //     this.buttonColor = 'secondary'
+      //     this.$q.loading.hide()
+      //   })
     },
     uploadFile(e) {
       this.post.file = e.target.files[0]
       this.post.caption = this.post.file.name.replace('.pdf', '')
       this.buttonColor = 'positive'
       console.log(this.post.file)
-    },
-    // resolve location methods
-    locationSupported() {
-      if ('geolocation' in navigator) return true
-      return false
-    },
-    // gets the location @click
-    getLocation() {
-      this.loadingLocation = true
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          this.getCityAndCountry(position)
-          //
-        },
-        (err) => {
-          console.log('error')
-        },
-        { timeout: 7000 }
-      )
-    },
-    // gets the location from opencitymap by lat and lon
-    getCityAndCountry(pos) {
-      let apiUrl = `${this.apiOsMap}reverse?format=geojson&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`
-      this.$axios.get(apiUrl).then(
-        (result) => {
-          if (result.data.features[0].properties.name) {
-            this.post.location = result.data.features[0].properties.name
-            if (result.data.features[0].properties.address.country_code) {
-              this.post.location = `${this.post.location}, ${result.data.features[0].properties.address.country_code} `
-            }
-            this.loadingLocation = false
-          } else {
-            this.locationError()
-          }
-        },
-        (err) => {
-          this.locationError()
-        }
-      )
-    },
-    locationError() {
-      this.loadingLocation = false
-      this.$q.dialog({
-        title: 'Error',
-        message: 'Location Unknown',
-      })
     },
   },
   computed: {

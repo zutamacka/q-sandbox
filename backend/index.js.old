@@ -69,7 +69,6 @@ let TsenseClient = new Typesense.Client({
   'connectionTimeoutSeconds': 2
 })
 const Collection = process.env.TYPESENSE_COLLECTION
-
 /*
   config - cors
 */
@@ -127,314 +126,9 @@ app.get('/posts', (request, response) => {
 })
 
 /*
-  endpoint - delete all firestore and typesense data, with extereme prejudice
+  endpoint - create post
 */
-app.delete('/delete-firestore', (request, response) => {
-  // access for Heroku
-  response.set("Access-Control-Allow-Origin", "*")
-
-  db.collection('posts').get().then(snapshot => {
-    snapshot.forEach((doc) => {
-      //let fileUrl = doc._fieldsProto.fileUrl.stringValue
-      let fireId = doc._fieldsProto.id.stringValue
-      TsenseClient.collections(Collection).documents(fireId).delete()
-      doc._ref.delete()
-    });
-    console.log('Delete djidja finished. Demonic powers compel you.');
-    response.send('All content deleted.')
-  })
-})
-
-/*
-  endpoint - create posts from pdf files in a folder
-*/
-app.post('/refresh-all-files', (request, response) => {
-  // response.set("Access-Control-Allow-Origin", "*")
-
-  //requiring path and fs modules
-  const path = require('path');
-  const fs = require('fs');
-  //joining path of directory 
-  let directoryPath = path.join(__dirname, '');
-  directoryPath = directoryPath.replace('backend', 'public\\pdfjs\\catalogues') 
-  
-  //passsing directoryPath and callback function
-  fs.readdir(directoryPath, function (err, files) {
-      //handling error
-      if (err) {
-          return console.log('Unable to scan directory: ' + err);
-      } 
-      //listing all files using forEach
-      files.forEach(function (file) {
-              
-        if (file.endsWith('.pdf')) {
-        
-          // get file data
-          let uuid = UUID()
-          let fileName = file.replace('.pdf', '')
-          let fileUrl = path.join(directoryPath, file);
-
-          // get file text
-          const pdfJsPromise = pdfjsLib.getDocument(fileUrl)
-
-          pdfJsPromise.promise.then(function (doc) {
-
-            const numPages = doc.numPages;
-
-            console.log(`Got doc with ${numPages} pages... ${fileName}`);
-            let pagesPromises = [];
-
-            for (let i = 1; i <= doc.numPages; i++) {
-              pagesPromises.push(getPageText(i, doc));
-            }
-
-            Promise.all(pagesPromises).then(function (pagesText) {
-              // join text
-              let fileText = pagesText.join(" ")
-
-              if (fileText.length > 10) {
-                  // console.log('theres text aight');
-                  
-                  // check if it exists in firestore
-                  let found = false
-                  db.collection('posts').where("fileUrl", "==", fileUrl).get().then(snapshot => {
-                    snapshot.forEach((doc) => {
-                      found = true
-                      fireId = doc.id
-                      caption = doc.caption
-                      refreshTypesense(fireId, caption, fileUrl, fileText)
-                      // console.log('Updating: ', fileName);
-                    });
-                  }).then(() => {
-                    if (!found) {
-                      // console.log('Creating: ', fileName,);
-                      postToFirestore(uuid, fileName, fileUrl, fileText);
-                    }
-                  })
-              }
-              else {
-                console.log(fileName, ' UNREADABLE. SKIPPED.');
-              }
-            });
-
-                // Retrieves the text of a specif page within a PDF Document obtained through pdf.js
-                function getPageText(pageNum, PDFDocumentInstance) {
-                  // Return a Promise that is solved once the text of the page is retrieven
-                  return new Promise(function (resolve, reject) {
-                    PDFDocumentInstance.getPage(pageNum).then(function (pdfPage) {
-                      // The main trick to obtain the text of the PDF page, use the getTextContent method
-                      pdfPage.getTextContent().then(function (content) {
-                            
-                        const strings = content.items.map(function (item) {
-                          return item.str;
-                        });
-                        fileText = strings.join(" ")
-                        // Solve promise with the text retrieven from the page
-                        resolve(fileText);
-                      });
-                    });
-                  });
-                }
-          }) //pdfJsPromise.promise.
-          .catch(err => {
-            console.log(err);
-          });
-        }        
-      });
-  });
-
-   // refreshes data in typesense; meant for existing files
-  function refreshTypesense(fireId, caption, fileUrl, fileText) {
-    let document = {
-      "id": fireId,
-      "text": fileText,
-      "fileUrl": fileUrl, 
-      "caption": caption
-    }
-    TsenseClient.collections(Collection).documents(fireId).update(document)
-      .catch(err => {
-        console.log(err);
-      });
-  }
-
-  // posts file to firestore and typesense; meant for newly found files
-  function postToFirestore(uuid, caption, fileUrl, fileText) {
-
-    db.collection('posts').doc(uuid).set({
-      id: uuid,
-      caption: caption,
-      // convert to integer
-      date: parseInt(Date.now()),
-      fileUrl: fileUrl
-    }).then(() => {
-      // send text to typesense
-      let document = {
-        "id": uuid,
-        "text": fileText,
-        "fileUrl": fileUrl, 
-        "caption": caption
-      }
-      TsenseClient.collections(Collection).documents().create(document)
-        .catch(err => {
-          console.log(err);
-        });
-    })  
-  }
-
-  console.log('Demonic djidja done.');
-  response.send('I djidjed.')
-})
-
-/*
-  endpoint - create posts from pdf files in a folder
-*/
-app.post('/pdf-test', (request, response) => {
-  // response.set("Access-Control-Allow-Origin", "*")
-
-    // process response containing the form data via busboy
-    const bus = busboy({ headers: request.headers });
-
-    let fields = {}
-    //on-field hook - do this for every field
-    bus.on('field', (name, val, info) => {
-      fields[name] = val
-    });
-    
-    // busboy close hook
-    bus.on('close', () => {
-      fileUrl = fields.fileUrl
-      fileName = fields.fileName
-
-      const pdfPath = process.argv[2] || fileUrl;
-
-      const pdfJsPromise = pdfjsLib.getDocument(pdfPath);
-      
-      let allText = 'starts here'
-
-      pdfJsPromise.promise.then(function (doc) {
-
-        const numPages = doc.numPages;
-
-        console.log(`Got doc with ${numPages} pages...`);
-        console.log();
-
-        let pagesPromises = [];
-
-        for (let i = 0; i < doc.numPages; i++) {
-            // Required to prevent that i is always the total of pages
-            (function (pageNumber) {
-                pagesPromises.push(getPageText(pageNumber, doc));
-            })(i + 1);
-        }
-
-        Promise.all(pagesPromises).then(function (pagesText) {
-          //pagesText.forEach(txt => console.log(txt))
-          allText = pagesText.join(" ")
-          console.log(allText);
-        });
-
-    /**
-     * Retrieves the text of a specified page within a PDF Document obtained through pdf.js 
-     * 
-     **/
-    function getPageText(pageNum, PDFDocumentInstance) {
-        // Return a Promise that is solved once the text of the page is retrieven
-        return new Promise(function (resolve, reject) {
-            PDFDocumentInstance.getPage(pageNum).then(function (pdfPage) {
-                // The main trick to obtain the text of the PDF page, use the getTextContent method
-                pdfPage.getTextContent().then(function (content) {
-                  
-                    const strings = content.items.map(function (item) {
-                         return item.str;
-                    });
-                    fileText = strings.join(" ")
-
-
-                  
-                    // Solve promise with the text retrieven from the page
-                    resolve(fileText);
-                });
-            });
-        });
-    }
-      }) //t.promise.
-      .catch(err => {
-        console.log(err);
-      });
-    
-    console.log('Done djidjing. Demonic powers compel you');
-    response.send('I djidjed.')
-  })
- 
-})
-
-
-
-
-
-/*
-  CODE STORE
-*/
-/*
-  endpoint - delete post
-*/
-// https://expressjs.com/en/guide/routing.html
-app.delete('/delete/:id', (request, response) => {
-  // access for Heroku
-  response.set("Access-Control-Allow-Origin", "*")
-
-  let post = {}
-  
-  // get the actual post so we can have the info. unnecessary but let's have it.
-  db.collection('posts').where("id", "==", request.params.id).get()
-    .then((querySnapshot) => {
-      
-      querySnapshot.forEach((doc) => {
-        
-        // get the post
-        post = doc.data()
-
-        //create the fileName
-        let fileName = post.id + '.pdf'
-
-      
-        const file = bucket.file(fileName);
-        file.delete().then(() => {
-          // if the file is deleted, proceed to delete the post
-          db.collection('posts').doc(post.id).delete()
-          .then(() => {
-            TsenseClient.collections(Collection).documents().delete({ 'filter_by': `name : ${ post.id }` })
-              // maybe batch this if it's only 1 document https://typesense.org/docs/0.22.2/api/documents.html#delete-a-single-document
-              //client.collections('companies').documents().delete({'filter_by': 'num_employees:>100'})
-             .then(() => {  
-               console.log('post ' + post.id + ' deleted');
-               return
-             })
-             .catch((error) => {
-                console.log('post not deleted in TypeSense', error );
-             });            
-          })
-          .catch((error) => {
-            console.log('post not deleted', error );
-          });
-        }).catch((error) => {
-          console.log('Storage file couldnt be deleted.', error);
-        });
-      });
-  })
-  .catch((error) => {
-      console.log("Error getting posts: ", error);
-  });
-})
-
-
-
-
-
-/*
-  endpoint - create post with busboy and firestore
-*/
-app.post('/post-create', (request, response) => {
+app.post('/posts-create', (request, response) => {
   response.set("Access-Control-Allow-Origin", "*")
 
   // create an uuid for this
@@ -513,6 +207,7 @@ app.post('/post-create', (request, response) => {
       db.collection('posts').doc(fields.id).set({
         id: fields.id,
         caption: fields.caption,
+        location: fields.location,
         // convert to integer
         date: parseInt(fields.date),
         fileUrl: pdfUrl
@@ -591,6 +286,271 @@ app.post('/post-create', (request, response) => {
   // actually run busboy
   request.pipe(bb);
 })
+
+/*
+  endpoint - delete post
+*/
+// https://expressjs.com/en/guide/routing.html
+app.delete('/delete/:id', (request, response) => {
+  // access for Heroku
+  response.set("Access-Control-Allow-Origin", "*")
+
+  let post = {}
+  
+  // get the actual post so we can have the info. unnecessary but let's have it.
+  db.collection('posts').where("id", "==", request.params.id).get()
+    .then((querySnapshot) => {
+      
+      querySnapshot.forEach((doc) => {
+        
+        // get the post
+        post = doc.data()
+
+        //create the fileName
+        let fileName = post.id + '.pdf'
+
+      
+        const file = bucket.file(fileName);
+        file.delete().then(() => {
+          // if the file is deleted, proceed to delete the post
+          db.collection('posts').doc(post.id).delete()
+          .then(() => {
+            TsenseClient.collections(Collection).documents().delete({ 'filter_by': `name : ${ post.id }` })
+              // maybe batch this if it's only 1 document https://typesense.org/docs/0.22.2/api/documents.html#delete-a-single-document
+              //client.collections('companies').documents().delete({'filter_by': 'num_employees:>100'})
+             .then(() => {  
+               console.log('post ' + post.id + ' deleted');
+               return
+             })
+             .catch((error) => {
+                console.log('post not deleted in TypeSense', error );
+             });            
+          })
+          .catch((error) => {
+            console.log('post not deleted', error );
+          });
+        }).catch((error) => {
+          console.log('Storage file couldnt be deleted.', error);
+        });
+      });
+  })
+  .catch((error) => {
+      console.log("Error getting posts: ", error);
+  });
+})
+
+/*
+  endpoint - create posts from pdf files in a folder
+*/
+app.post('/pdf-test', (request, response) => {
+  response.set("Access-Control-Allow-Origin", "*")
+
+    // process response containing the form data via busboy
+    const bus = busboy({ headers: request.headers });
+
+    let fields = {}
+    //on-field hook - do this for every field
+    bus.on('field', (name, val, info) => {
+      fields[name] = val
+    });
+    
+    // busboy close hook
+    bus.on('close', () => {
+      fileUrl = fields.fileUrl
+      fileName = fields.fileName
+
+      const pdfPath = process.argv[2] || fileUrl;
+
+      //console.log('pdfpath, ', pdfPath);
+
+      const pdfJsPromise = pdfjsLib.getDocument(pdfPath);
+      
+      let allText = 'starts here'
+
+      pdfJsPromise.promise.then(function (doc) {
+
+        const numPages = doc.numPages;
+
+        console.log(`Got doc with ${numPages} pages...`);
+        console.log();
+
+        let pagesPromises = [];
+
+        for (let i = 0; i < doc.numPages; i++) {
+            // Required to prevent that i is always the total of pages
+            (function (pageNumber) {
+                pagesPromises.push(getPageText(pageNumber, doc));
+            })(i + 1);
+        }
+
+        Promise.all(pagesPromises).then(function (pagesText) {
+          //pagesText.forEach(txt => console.log(txt))
+          allText = pagesText.join(" ")
+          console.log(allText);
+        });
+
+    /**
+     * Retrieves the text of a specified page within a PDF Document obtained through pdf.js 
+     * 
+     **/
+    function getPageText(pageNum, PDFDocumentInstance) {
+        // Return a Promise that is solved once the text of the page is retrieven
+        return new Promise(function (resolve, reject) {
+            PDFDocumentInstance.getPage(pageNum).then(function (pdfPage) {
+                // The main trick to obtain the text of the PDF page, use the getTextContent method
+                pdfPage.getTextContent().then(function (content) {
+                  
+                    const strings = content.items.map(function (item) {
+                         return item.str;
+                    });
+                    fileText = strings.join(" ")
+
+
+                  
+                    // Solve promise with the text retrieven from the page
+                    resolve(fileText);
+                });
+            });
+        });
+    }
+      }) //t.promise.
+      .catch(err => {
+        console.log(err);
+      });
+    
+    console.log('Done djidjing. Demonic powers compel you');
+    response.send('I djidjed.')
+  })
+  // actually run busboy
+  request.pipe(bus);
+    
+})
+
+// this is a create test djidja.
+app.post('/pdf-test-create', (request, response) => {
+  response.set("Access-Control-Allow-Origin", "*")
+
+  //requiring path and fs modules
+  const path = require('path');
+  const fs = require('fs');
+  //joining path of directory 
+  let directoryPath = path.join(__dirname, '');
+  directoryPath = directoryPath.replace('backend', 'public\\pdfjs\\catalogues') 
+  
+  console.log('directoryPath', directoryPath);
+
+  //passsing directoryPath and callback function
+  fs.readdir(directoryPath, function (err, files) {
+      //handling error
+      if (err) {
+          return console.log('Unable to scan directory: ' + err);
+      } 
+      //listing all files using forEach
+      files.forEach(function (file) {
+          // Do whatever you want to do with the file
+        let uuid = UUID()
+        let fileName = file.replace('.pdf', '')
+        let fileUrl = path.join(directoryPath, file);
+
+        // post fields to firestore
+        db.collection('posts').doc(uuid).set({
+          id: uuid,
+          caption: fileName,
+          location: '',
+          // convert to integer
+          date: parseInt(Date.now()),
+          fileUrl: fileUrl
+        }).then(() => {
+          console.log('Posted to firestore.');
+
+        // extract PDF text
+        // const pdfPath = process.argv[2] || fileUrl;
+
+          const pdfJsPromise = pdfjsLib.getDocument(fileUrl); 
+        
+          pdfJsPromise.promise.then(function (doc) {
+
+            const numPages = doc.numPages;
+
+            console.log(`Got doc with ${numPages} pages...`);
+            let pagesPromises = [];
+
+            for (let i = 1; i <= doc.numPages; i++) {
+                pagesPromises.push(getPageText(i, doc));
+            }
+
+            Promise.all(pagesPromises).then(function (pagesText) {
+              // join text
+              let fileText = pagesText.join(" ")
+              console.log(fileText);
+              
+              // send text to typesense
+              let document = {
+                "name": fileName,
+                "text": fileText,
+                "fileUrl": fileUrl, 
+                "caption" : fileName
+              }
+              TsenseClient.collections(Collection).documents().create(document)
+                .then(function () { 
+                  console.log('Done Parsing form and inserting to dbases. Demonic powers compel you.');
+                })
+                .catch(err => {
+                  console.log(err);
+                });
+            });
+
+                // Retrieves the text of a specif page within a PDF Document obtained through pdf.js
+                function getPageText(pageNum, PDFDocumentInstance) {
+                  // Return a Promise that is solved once the text of the page is retrieven
+                  return new Promise(function (resolve, reject) {
+                    PDFDocumentInstance.getPage(pageNum).then(function (pdfPage) {
+                      // The main trick to obtain the text of the PDF page, use the getTextContent method
+                      pdfPage.getTextContent().then(function (content) {
+                            
+                        const strings = content.items.map(function (item) {
+                          return item.str;
+                        });
+                        fileText = strings.join(" ")
+                        // Solve promise with the text retrieven from the page
+                        resolve(fileText);
+                      });
+                    });
+                  });
+                }
+          }) //pdfJsPromise.promise.
+          .catch(err => {
+            console.log(err);
+          });
+        })
+      });
+  });
+
+  console.log('Demonic djidja done.');
+  response.send('I djidjed.')
+})
+
+
+
+/*
+  endpoint - delete post
+*/
+// https://expressjs.com/en/guide/routing.html
+app.delete('/test-delete', (request, response) => {
+  // access for Heroku
+  response.set("Access-Control-Allow-Origin", "*")
+
+   db.collection('posts').listDocuments().then(val => {
+        val.map((val) => {
+            val.delete()
+        })
+    })
+
+  let post = {}
+  console.log('delete djidja');
+  response.send('I delete djidjed.')
+})
+
 
 
 /*

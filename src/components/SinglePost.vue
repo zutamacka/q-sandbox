@@ -105,45 +105,45 @@ export default defineComponent({
       console.log('Test djdij')
     },
     // this is a testing function for uploading content to typesense
-    djidja() {
-      console.log('I log the djidja')
-      this.$q.loading.show({
-        message: 'Djidjing...',
-      })
+    // djidja() {
+    //   console.log('I log the djidja')
+    //   this.$q.loading.show({
+    //     message: 'Djidjing...',
+    //   })
 
-      console.log(this.post)
+    //   console.log(this.post)
 
-      let formData = new FormData()
-      formData.append('fileUrl', this.post.fileUrl)
-      formData.append('fileName', this.post.id)
-      this.$axios
-        .post(`${process.env.API}/pdf-test`, formData)
-        .then((response) => {
-          console.log(response)
-          // send to the Home page after a successful post
-          this.$router.push('/')
-          // notify about posting
-          this.$q.notify({
-            message: 'Djidja Done.',
-            actions: [
-              {
-                label: 'Dismiss',
-                color: 'primary',
-              },
-            ],
-          })
-        })
-        .catch((err) => {
-          console.log('error ', err)
-          this.$q.dialog({
-            title: 'Error',
-            message: 'Djidja failed.',
-          })
-        })
-        .finally(() => {
-          this.$q.loading.hide()
-        })
-    },
+    //   let formData = new FormData()
+    //   formData.append('fileUrl', this.post.fileUrl)
+    //   formData.append('fileName', this.post.id)
+    //   this.$axios
+    //     .post(`${process.env.API}/pdf-test`, formData)
+    //     .then((response) => {
+    //       console.log(response)
+    //       // send to the Home page after a successful post
+    //       this.$router.push('/')
+    //       // notify about posting
+    //       this.$q.notify({
+    //         message: 'Djidja Done.',
+    //         actions: [
+    //           {
+    //             label: 'Dismiss',
+    //             color: 'primary',
+    //           },
+    //         ],
+    //       })
+    //     })
+    //     .catch((err) => {
+    //       console.log('error ', err)
+    //       this.$q.dialog({
+    //         title: 'Error',
+    //         message: 'Djidja failed.',
+    //       })
+    //     })
+    //     .finally(() => {
+    //       this.$q.loading.hide()
+    //     })
+    // },
   },
 })
 </script>
