@@ -85,6 +85,7 @@
 import { defineComponent } from 'vue'
 import { uid } from 'quasar'
 import { ref } from 'vue'
+import { fireDB } from '../boot/firebase.js'
 import SinglePost from '../components/SinglePost.vue'
 import SkeletonPost from '../components/SkeletonPost.vue'
 import NoPosts from '../components/NoPosts.vue'
@@ -126,7 +127,7 @@ export default defineComponent({
         message: 'Refreshing databases...',
       })
       this.$axios
-        .post(`${process.env.API}/refresh-all-files`, {})
+        .post(`${process.env.API}/rebuild-whole-database`, {})
         .then((response) => {
           // this.$router.push('/')
           // notify about posting
@@ -207,6 +208,24 @@ export default defineComponent({
           this.loadingPosts = false
         })
     },
+    getPostsLocal() {
+      this.posts = []
+      fireDB
+        .collection('posts')
+        .orderBy('date', 'desc')
+
+        .get()
+        .then((snapshot) => {
+          snapshot.forEach((doc) => {
+            this.posts.push(doc.data())
+          })
+        })
+        .finally(() => {
+          if (this.posts.length > 0) {
+            this.uploaded = 'rounded row'
+          }
+        })
+    },
     // upload
     pawst() {
       console.log('Im suspended')
@@ -273,7 +292,7 @@ export default defineComponent({
     },
   },
   created() {
-    this.getPosts()
+    this.getPostsLocal()
   },
 })
 </script>

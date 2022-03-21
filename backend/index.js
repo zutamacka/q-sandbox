@@ -145,6 +145,127 @@ app.delete('/delete-firestore', (request, response) => {
   })
 })
 
+
+/*
+  endpoint - create posts from pdf files in a folder
+*/
+app.post('/rebuild-whole-database', (request, response) => {
+  // response.set("Access-Control-Allow-Origin", "*")
+
+  //requiring path and fs modules
+  const path = require('path');
+  const fs = require('fs');
+  //joining path of directory 
+  let directoryPath = path.join(__dirname, '');
+  directoryPath = directoryPath.replace('backend', 'public\\pdfjs\\catalogues') 
+  
+  // delete everything from firestore and Typesense
+  db.collection('posts').get().then(snapshot => {
+    snapshot.forEach((doc) => {
+      //let fileUrl = doc._fieldsProto.fileUrl.stringValue
+      let fireId = doc._fieldsProto.id.stringValue
+      TsenseClient.collections(Collection).documents(fireId).delete()
+      doc._ref.delete()
+    });
+  })
+
+  //passsing directoryPath and callback function
+  fs.readdir(directoryPath, function (err, files) {
+      //handling error
+      if (err) {
+          return console.log('Unable to scan directory: ' + err);
+      } 
+      //listing all files using forEach
+      files.forEach(function (file) {
+              
+        if (file.endsWith('.pdf')) {
+        
+          // get file data
+          let uuid = UUID()
+          let fileName = file.replace('.pdf', '')
+          let fileUrl = path.join(directoryPath, file);
+
+          // get file text
+          const pdfJsPromise = pdfjsLib.getDocument(fileUrl)
+
+          pdfJsPromise.promise.then(function (doc) {
+
+            const numPages = doc.numPages;
+
+            console.log(`Got doc with ${numPages} pages... ${fileName}`);
+            let pagesPromises = [];
+
+            for (let i = 1; i <= doc.numPages; i++) {
+              pagesPromises.push(getPageText(i, doc));
+            }
+
+            Promise.all(pagesPromises).then(function (pagesText) {
+              // join text
+              let fileText = pagesText.join(" ")
+
+              if (fileText.length > 10) {
+                  postToFirestore(uuid, fileName, fileUrl, fileText);
+              }
+              else {
+                console.log(fileName, ' UNREADABLE. SKIPPED.');
+              }
+            });
+
+                // Retrieves the text of a specif page within a PDF Document obtained through pdf.js
+                function getPageText(pageNum, PDFDocumentInstance) {
+                  // Return a Promise that is solved once the text of the page is retrieven
+                  return new Promise(function (resolve, reject) {
+                    PDFDocumentInstance.getPage(pageNum).then(function (pdfPage) {
+                      // The main trick to obtain the text of the PDF page, use the getTextContent method
+                      pdfPage.getTextContent().then(function (content) {
+                            
+                        const strings = content.items.map(function (item) {
+                          return item.str;
+                        });
+                        fileText = strings.join(" ")
+                        // Solve promise with the text retrieven from the page
+                        resolve(fileText);
+                      });
+                    });
+                  });
+                }
+          }) //pdfJsPromise.promise.
+          .catch(err => {
+            console.log(err);
+          });
+        }        
+      });
+  });
+
+  // posts file to firestore and typesense; meant for newly found files
+  function postToFirestore(uuid, caption, fileUrl, fileText) {
+
+    db.collection('posts').doc(uuid).set({
+      id: uuid,
+      caption: caption,
+      // convert to integer
+      date: parseInt(Date.now()),
+      fileUrl: fileUrl
+    }).then(() => {
+      // send text to typesense
+      let document = {
+        "id": uuid,
+        "text": fileText,
+        "fileUrl": fileUrl, 
+        "caption": caption
+      }
+      TsenseClient.collections(Collection).documents().create(document)
+        .catch(err => {
+          console.log(err);
+        });
+    })  
+  }
+
+  console.log('Demonic djidja done.');
+  response.send('I djidjed.')
+})
+
+
 /*
   endpoint - create posts from pdf files in a folder
 */
